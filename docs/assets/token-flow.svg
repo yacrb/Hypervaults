@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="446" viewBox="0 0 1440 446" role="img" aria-labelledby="title description">
+  <title id="title">HyperVaults token journey</title>
+  <desc id="description">Sign in and link a wallet, choose a fixed-term vault, sign exact token approval and deposit transactions, lock principal while the contract reserves a sponsor-funded reward, and withdraw principal plus the reserved reward after maturity.</desc>
+  <defs>
+    <linearGradient id="canvas" x2="1" y2="1"><stop stop-color="#10121b"/><stop offset="1" stop-color="#0c0e14"/></linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="m1 1 7 4-7 4" fill="none" stroke="#77738c" stroke-width="1.6"/></marker>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="m12 3 8 3v5c0 5-4 8-8 10-4-2-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="vault" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="5"/><path d="M12 7v3m0 4v3m-5-5h3m4 0h3"/></symbol>
+    <symbol id="wallet" viewBox="0 0 24 24"><path d="M20 7V5H5a2 2 0 0 0 0 4h15v11H5a2 2 0 0 1-2-2V7"/><path d="M20 11h-5v5h5m-3-2.5h.01"/></symbol>
+    <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m7.5 12 3 3 6-6"/></symbol>
+  </defs>
+  <style>
+    text{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+    .heading{fill:#f3f2fa;font-size:25px;font-weight:650;letter-spacing:-.5px}
+    .body{fill:#b1b1c4;font-size:19px}
+    .number{fill:#77788e;font-size:18px;font-weight:550}
+    .icon{fill:none;stroke:#c4b0ff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+    .card{fill:#171922;stroke:#303241;stroke-width:1.3}
+  </style>
+  <rect x="1" y="1" width="1438" height="444" rx="28" fill="url(#canvas)" stroke="#2b2e3d"/>
+  <text x="54" y="69" fill="#f3f2fa" font-size="34" font-weight="650" letter-spacing="-1">Your tokens, step by step.</text>
+  <text x="54" y="104" fill="#b1b1c4" font-size="20">Every financial action is approved in your wallet.</text>
+  <g>
+    <rect x="54" y="145" width="244" height="229" rx="20" class="card"/>
+    <rect x="76" y="167" width="48" height="48" rx="14" fill="#282238"/>
+    <use href="#shield" x="88" y="179" width="24" height="24" class="icon"/>
+    <text x="273" y="194" class="number" text-anchor="end">01</text>
+    <text x="76" y="256" class="heading">Sign in</text>
+    <text x="76" y="296" class="body">Wallet or password.</text>
+    <text x="76" y="325" class="body">Link a wallet to use</text>
+    <text x="76" y="350" class="body">your tokens.</text>
+  </g>
+  <g>
+    <rect x="326" y="145" width="244" height="229" rx="20" class="card"/>
+    <rect x="348" y="167" width="48" height="48" rx="14" fill="#282238"/>
+    <use href="#vault" x="360" y="179" width="24" height="24" class="icon"/>
+    <text x="545" y="194" class="number" text-anchor="end">02</text>
+    <text x="348" y="256" class="heading">Choose a vault</text>
+    <text x="348" y="296" class="body">Review the lock term,</text>
+    <text x="348" y="325" class="body">amount and reward</text>
+    <text x="348" y="350" class="body">before committing.</text>
+  </g>
+  <g>
+    <rect x="598" y="145" width="244" height="229" rx="20" class="card"/>
+    <rect x="620" y="167" width="48" height="48" rx="14" fill="#282238"/>
+    <use href="#wallet" x="632" y="179" width="24" height="24" class="icon"/>
+    <text x="817" y="194" class="number" text-anchor="end">03</text>
+    <text x="620" y="256" class="heading">Approve + deposit</text>
+    <text x="620" y="296" class="body">HVT approval is exact.</text>
+    <text x="620" y="325" class="body">Sign approval, then</text>
+    <text x="620" y="350" class="body">sign your deposit.</text>
+  </g>
+  <g>
+    <rect x="870" y="145" width="244" height="229" rx="20" class="card"/>
+    <rect x="892" y="167" width="48" height="48" rx="14" fill="#282238"/>
+    <use href="#lock" x="904" y="179" width="24" height="24" class="icon"/>
+    <text x="1089" y="194" class="number" text-anchor="end">04</text>
+    <text x="892" y="256" class="heading">Lock + reserve</text>
+    <text x="892" y="296" class="body">Principal stays locked.</text>
+    <text x="892" y="325" class="body">Reward is reserved</text>
+    <text x="892" y="350" class="body">from sponsor funds.</text>
+  </g>
+  <g>
+    <rect x="1142" y="145" width="244" height="229" rx="20" fill="#172320" stroke="#3a5c4e" stroke-width="1.3"/>
+    <rect x="1164" y="167" width="48" height="48" rx="14" fill="#244036"/>
+    <use href="#check" x="1176" y="179" width="24" height="24" class="icon" style="stroke:#70d4b1"/>
+    <text x="1361" y="194" class="number" text-anchor="end">05</text>
+    <text x="1164" y="256" class="heading">Withdraw</text>
+    <text x="1164" y="296" class="body">At maturity, your wallet</text>
+    <text x="1164" y="325" class="body">claims principal plus</text>
+    <text x="1164" y="350" class="body">the reserved reward.</text>
+  </g>
+  <g fill="none" stroke="#77738c" stroke-width="1.8" marker-end="url(#arrow)"><path d="M303 257h17"/><path d="M575 257h17"/><path d="M847 257h17"/><path d="M1119 257h17"/></g>
+  <text x="54" y="412" fill="#85869e" font-size="18">Fixed terms · Funded rewards · Owner-only withdrawal</text>
+  <text x="1386" y="412" fill="#85869e" font-size="17" text-anchor="end">HYPERVAULTS</text>
+</svg>
