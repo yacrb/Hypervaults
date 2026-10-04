@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>HyperVaults · Sign in</title>
+  <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css?v=2">
+  <script type="module" src="/static/js/auth.js?v=3"></script>
+</head>
+<body class="auth-body">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="auth-header">
+    <a class="brand" href="/login"><img src="/static/favicon.svg?v=2" alt="" width="32" height="32">HyperVaults</a>
+    <span class="environment"><span class="status-dot"></span>Local testnet</span>
+  </header>
+  <main id="main" class="auth-layout">
+    <section class="auth-intro" aria-labelledby="intro-title">
+      <span class="intro-tag"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#spark"></use></svg>Your Web3 workspace</span>
+      <h1 id="intro-title">Your tokens.<br><span>Your terms.</span></h1>
+      <p>One place to lock tokens, track your rewards,<br class="desktop-break"> and withdraw at maturity.</p>
+      <div class="vault-art" aria-hidden="true"><img src="/static/vault.svg" alt="" width="420" height="300"></div>
+      <div class="auth-trust"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#shield"></use></svg>Your keys stay in your wallet.</div>
+    </section>
+    <section class="auth-card" aria-labelledby="auth-title">
+      <div class="auth-card-heading"><span class="auth-symbol"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#vault"></use></svg></span><h2 id="auth-title">Welcome back</h2><p id="auth-description" class="muted">Sign in to your workspace.</p></div>
+      <div id="wallet-auth">
+        <button id="siwe-login" class="button wallet-login full-width" type="button" disabled><span class="wallet-logos" aria-hidden="true"><img src="/static/wallets/metamask.svg" alt="" width="22" height="22"><img src="/static/wallets/rabby.svg" alt="" width="22" height="22"></span><span>Continue with wallet</span><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#arrow-right"></use></svg></button>
+        <p class="wallet-auth-note">Sign a message. No transaction or gas fee.</p>
+        <div class="divider"><span>or continue with email</span></div>
+      </div>
+      <form id="auth-form" class="form-stack">
+        <label id="email-label">Email<input name="email" type="email" placeholder="you@example.com" autocomplete="username" maxlength="254" required></label>
+        <label id="name-label" hidden>Display name<input name="name" placeholder="Your name" autocomplete="nickname" maxlength="60"></label>
+        <label id="password-label">Password<span class="password-field"><input name="password" type="password" placeholder="Enter your password" autocomplete="current-password" maxlength="128" required><button id="show-password" class="icon-button" type="button" aria-label="Show password" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#eye"></use></svg></button></span></label>
+        <label id="confirm-label" hidden>Confirm password<input name="confirm" type="password" autocomplete="new-password" maxlength="128"></label>
+        <p id="password-hint" class="muted form-hint" hidden>Use 12 or more characters.</p>
+        <a id="recovery-link" class="text-link recovery-link" href="/recover">Forgot password?</a>
+        <button id="auth-submit" class="button full-width" type="submit">Sign in</button>
+        <p id="auth-message" class="form-message" role="status" aria-live="polite"></p>
+      </form>
+      <div id="auth-links" class="auth-links"><span class="muted">New to HyperVaults?</span><a class="text-link" href="/register">Create an account <span aria-hidden="true">↗</span></a></div>
+    </section>
+  </main>
+  <footer class="auth-footer"><span>HVT test tokens only</span><span>Not audited · Not for real funds</span></footer>
+</body>
+</html>
