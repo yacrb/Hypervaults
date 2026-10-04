@@ -1,0 +1,52 @@
+name: hypervaults
+services:
+  mongo:
+    image: mongo:8.0.17@sha256:9814652e33f0cf8b9fddea8b46dfc9d8e19b130dcfdd7b510ca58bb0d40c8b71
+    ports:
+      - "127.0.0.1:27018:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [private]
+    restart: unless-stopped
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.8.4@sha256:f69e1b8d1dda17d89227a4d0513b1d86f93ece430dea8d87aaea643da3607d3e
+    entrypoint: ["anvil"]
+    command: ["--host", "0.0.0.0", "--port", "8545", "--chain-id", "31337", "--hardfork", "cancun", "--silent", "--no-cors", "--state", "/state/anvil.json", "--state-interval", "5", "--preserve-historical-states"]
+    ports:
+      - "127.0.0.1:8545:8545"
+    volumes:
+      - anvil-data:/state
+    networks: [private]
+    restart: unless-stopped
+  app:
+    build: .
+    user: "${HV_UID:-10001}:${HV_GID:-10001}"
+    env_file: .env
+    environment:
+      HV_MONGO_URI: mongodb://mongo:27017
+      HV_RPC_URL: http://anvil:8545
+      HV_DEPLOYMENT_FILE: /app/.local/deployment.json
+    ports:
+      - "127.0.0.1:8088:8088"
+    volumes:
+      - ./.local:/app/.local
+    depends_on:
+      mongo:
+        condition: service_healthy
+      anvil:
+        condition: service_started
+    networks: [private]
+    restart: unless-stopped
+networks:
+  private:
+    # Docker Desktop's internal networks suppress published host ports. A private
+    # bridge with exclusively loopback host bindings supports local wallets/tests.
+    driver: bridge
+volumes:
+  mongo-data:
+  anvil-data:

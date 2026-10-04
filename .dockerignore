@@ -1,0 +1,10 @@
+*
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!webapp/
+!webapp/**
+!auth/
+!auth/**
+**/__pycache__
+**/*.pyc

@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.webp binary
+docs/** linguist-documentation
+webapp/static/vendor/** linguist-vendored
+webapp/contracts/abi.json linguist-generated
