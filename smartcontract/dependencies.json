@@ -1,0 +1,27 @@
+{
+  "openzeppelin": {
+    "url": "https://codeload.github.com/OpenZeppelin/openzeppelin-contracts/tar.gz/refs/tags/v5.7.0",
+    "destination": "smartcontract/lib/openzeppelin-contracts",
+    "sha256": "b22c8372c556d64b4f7d614e06e555e181fda90b23f7389ab9e807a5cf59d942"
+  },
+  "foundry-darwin-arm64": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.4/foundry_v1.8.4_darwin_arm64.tar.gz",
+    "destination": ".tools/bin",
+    "sha256": "b6a1b35d85c6b7dbe4b34ccf6c389407d530f906b56c319a5c74c7eec854de3b"
+  },
+  "foundry-darwin-amd64": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.4/foundry_v1.8.4_darwin_amd64.tar.gz",
+    "sha256": "a4ba162f6e3677878b717643fcb247c7dbe31e8007c7645564626161cb7d2053",
+    "destination": ".tools/bin"
+  },
+  "foundry-linux-amd64": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.4/foundry_v1.8.4_linux_amd64.tar.gz",
+    "sha256": "699e2207a6a9b27ca17c48c81e56f1677ed9c58b623b59128b4e15ec9da0625e",
+    "destination": ".tools/bin"
+  },
+  "foundry-linux-arm64": {
+    "url": "https://github.com/foundry-rs/foundry/releases/download/v1.8.4/foundry_v1.8.4_linux_arm64.tar.gz",
+    "sha256": "d998f88314c057dc37c1de9a2044f49b273505965ff94bea5c3c5aefa9d1debd",
+    "destination": ".tools/bin"
+  }
+}
