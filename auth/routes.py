@@ -34,12 +34,14 @@ class Registration(Credentials):
 
 class Reauthentication(Input):
     password: str = Field(min_length=1, max_length=128)
+    mfa_code: str = Field(default="", max_length=64)
 
 
 class PasswordChange(Input):
     current_password: str = Field(default="", max_length=128)
     new_password: str = Field(min_length=12, max_length=128)
     email: EmailStr | None = None
+    mfa_code: str = Field(default="", max_length=64)
 
 
 class Recovery(Input):
@@ -49,6 +51,7 @@ class Recovery(Input):
 class Reset(Input):
     token: str = Field(min_length=32, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     password: str = Field(min_length=12, max_length=128)
+    mfa_code: str = Field(default="", max_length=64)
 
 
 class Challenge(Input):
@@ -60,6 +63,7 @@ class Proof(Input):
     id: str = Field(pattern=r"^[0-9a-f]{64}$")
     message: str = Field(min_length=80, max_length=2048)
     signature: str = Field(max_length=256)
+    mfa_code: str = Field(default="", max_length=64)
 
 
 class UserChange(Input):
@@ -78,7 +82,10 @@ def session_bootstrap(request: Request, response: Response):
     session, user = service.resolve(request, required=False)
     if session is None:
         session = service.create_session(response, request)
-    return signed_in_payload(user, session)
+    payload = signed_in_payload(user, session)
+    pending = session.get("pending_mfa")
+    payload["mfa_required"] = bool(not user and pending and pending["expires_at"] > service.now())
+    return payload
 
 
 @router.post("/auth/register", status_code=201)
@@ -103,7 +110,8 @@ def register(body: Registration, request: Request, response: Response):
         service.db.users.insert_one(user)
     except DuplicateKeyError as exc:
         raise HTTPException(
-            409, "Registration could not be completed. Try signing in or recovering access."
+            409,
+            "Registration could not be completed. Try signing in or recovering access.",
         ) from exc
     session = service.rotate(response, request, user, "password")
     service.audit(user["_id"], "account_registered")
@@ -120,9 +128,7 @@ def login(body: Credentials, request: Request, response: Response):
     if not valid or user["disabled"]:
         service.audit(user["_id"] if user else None, "login_failed")
         raise HTTPException(401, "Invalid credentials or unavailable account.")
-    session = service.rotate(response, request, user, "password")
-    service.audit(user["_id"], "password_login")
-    return signed_in_payload(user, session)
+    return service.sign_in(response, request, user, "password")
 
 
 @router.post("/auth/logout")
@@ -131,6 +137,7 @@ def logout(request: Request, response: Response):
     service = request.app.state.auth
     service.db.sessions.delete_one({"_id": session["_id"]})
     service.db.challenges.delete_many({"session_id": session["_id"]})
+    service.db.mfa_setups.delete_one({"_id": session["_id"]})
     response.delete_cookie(
         service.settings.cookie_name,
         path="/",
@@ -150,8 +157,10 @@ def reauthenticate(body: Reauthentication, request: Request, user=Depends(curren
     service.throttle(request, "reauthentication", user["_id"], limit=5)
     if not service.verify_password(body.password, user):
         raise HTTPException(401, "Authentication failed.")
+    service.mfa.verify(user, body.mfa_code)
     service.db.sessions.update_one(
-        {"_id": session["_id"]}, {"$set": {"authenticated_at": service.now(), "method": "password"}}
+        {"_id": session["_id"]},
+        {"$set": {"authenticated_at": service.now(), "method": "password"}},
     )
     service.audit(user["_id"], "recent_password_authentication")
     return {"ok": True}
@@ -167,8 +176,13 @@ def security_change(service, request, response, user, update: dict, kind: str):
         raise HTTPException(409, "Account changed. Sign in again.")
     service.db.sessions.delete_many({"user_id": user["_id"]})
     service.db.reset_tokens.delete_many({"user_id": user["_id"]})
+    service.db.mfa_setups.delete_many({"user_id": user["_id"]})
+    previous, _ = context(request)
     session = service.create_session(
-        response, request, changed, "password" if kind == "password_changed" else "wallet"
+        response,
+        request,
+        changed,
+        "password" if kind == "password_changed" else previous["method"],
     )
     service.audit(user["_id"], kind)
     return signed_in_payload(changed, session)
@@ -176,7 +190,10 @@ def security_change(service, request, response, user, update: dict, kind: str):
 
 @router.post("/auth/password")
 def change_password(
-    body: PasswordChange, request: Request, response: Response, user=Depends(current_user)
+    body: PasswordChange,
+    request: Request,
+    response: Response,
+    user=Depends(current_user),
 ):
     service = request.app.state.auth
     session, _ = context(request)
@@ -191,14 +208,19 @@ def change_password(
         service.recent(session)
         if session["method"] != "wallet" or body.email is None:
             raise HTTPException(
-                400, "Verify a linked wallet and provide an email to add password sign-in."
+                400,
+                "Verify a linked wallet and provide an email to add password sign-in.",
             )
         update["email"] = str(body.email).casefold()
+    # Wallet-only setup has just completed full wallet+MFA reauthentication.
+    if user.get("password_hash"):
+        service.mfa.verify(user, body.mfa_code)
     try:
         return security_change(service, request, response, user, update, "password_changed")
     except DuplicateKeyError as exc:
         raise HTTPException(
-            409, "Email identity is unavailable; accounts are never merged automatically."
+            409,
+            "Email identity is unavailable; accounts are never merged automatically.",
         ) from exc
 
 
@@ -231,13 +253,26 @@ def recover(body: Recovery, request: Request):
 def reset(body: Reset, request: Request):
     service = request.app.state.auth
     service.throttle(request, "reset", limit=5)
-    row = service.db.reset_tokens.find_one_and_delete(
+    row = service.db.reset_tokens.find_one(
         {
             "_id": digest(body.token),
             "expires_at": {"$gt": service.now()},
         }
     )
     if row is None:
+        raise HTTPException(400, "Reset link is invalid, used or expired.")
+    user = service.db.users.find_one(
+        {"_id": row["user_id"], "auth_version": row["version"], "disabled": False}
+    )
+    if user is None:
+        raise HTTPException(400, "Reset link is invalid, used or expired.")
+    service.throttle(request, "reset_mfa", user["_id"], limit=5)
+    service.mfa.verify(user, body.mfa_code)
+    # Invalid factors leave the link usable; successful resets claim it once.
+    if (
+        service.db.reset_tokens.find_one_and_delete({"_id": row["_id"], "version": row["version"]})
+        is None
+    ):
         raise HTTPException(400, "Reset link is invalid, used or expired.")
     changed = service.db.users.find_one_and_update(
         {"_id": row["user_id"], "auth_version": row["version"], "disabled": False},
@@ -270,7 +305,8 @@ def wallet_challenge(body: Challenge, request: Request):
     address = Web3.to_checksum_address(body.address)
     if not request.app.state.chain.is_eoa(address):
         raise HTTPException(
-            400, "Use a key-controlled wallet. Contract-wallet signatures are not supported."
+            400,
+            "Use a key-controlled wallet. Contract-wallet signatures are not supported.",
         )
     return service.challenge(session, user, address, body.action)
 
@@ -304,7 +340,8 @@ def wallet_verify(body: Proof, request: Request, response: Response):
             raise HTTPException(409, "Wallet is already linked to another account.") from exc
         if changed is None:
             raise HTTPException(
-                409, "Wallet already linked, eight-wallet limit reached, or account changed."
+                409,
+                "Wallet already linked, eight-wallet limit reached, or account changed.",
             )
         service.db.sessions.delete_many({"user_id": user["_id"]})
         new_session = service.create_session(response, request, changed, session["method"])
@@ -313,6 +350,8 @@ def wallet_verify(body: Proof, request: Request, response: Response):
     if proof["action"] == "reauth":
         if address not in user["wallets"]:
             raise HTTPException(403, "Linked wallet ownership required.")
+        service.throttle(request, "reauthentication", user["_id"], limit=5)
+        service.mfa.verify(user, body.mfa_code)
         service.db.sessions.update_one(
             {"_id": session["_id"]},
             {"$set": {"authenticated_at": service.now(), "method": "wallet"}},
@@ -336,9 +375,7 @@ def wallet_verify(body: Proof, request: Request, response: Response):
             user = service.db.users.find_one({"wallets": address})
     if user is None or user["disabled"]:
         raise HTTPException(401, "Invalid credentials or unavailable account.")
-    new_session = service.rotate(response, request, user, "wallet")
-    service.audit(user["_id"], "wallet_login", address=address)
-    return signed_in_payload(user, new_session)
+    return service.sign_in(response, request, user, "wallet")
 
 
 @router.get("/security/sessions")
@@ -521,7 +558,10 @@ def admin_revoke_sessions(user_id: str, request: Request, actor=Depends(administ
         raise HTTPException(404, "User not found.")
     result = service.db.sessions.delete_many({"user_id": user_id})
     service.audit(
-        actor["_id"], "admin_sessions_revoked", target=user_id, count=result.deleted_count
+        actor["_id"],
+        "admin_sessions_revoked",
+        target=user_id,
+        count=result.deleted_count,
     )
     return {"ok": True}
 

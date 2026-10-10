@@ -16,6 +16,7 @@ from pwdlib.exceptions import UnknownHashError
 from pymongo import ReturnDocument
 from siwe import SiweMessage
 
+from auth.mfa import MFAService
 from webapp.config import Settings
 
 
@@ -38,6 +39,8 @@ def public_user(user: dict | None) -> dict | None:
         "role": user["role"],
         "disabled": user["disabled"],
         "has_password": bool(user.get("password_hash")),
+        "mfa_enabled": bool(user.get("mfa")),
+        "recovery_codes_remaining": len(user.get("mfa", {}).get("recovery_hashes", [])),
     }
 
 
@@ -46,6 +49,7 @@ class AuthService:
         self.db, self.settings, self.now = db, settings, clock
         self.passwords = PasswordHash.recommended()
         self.dummy_hash = self.passwords.hash(secrets.token_urlsafe(32))
+        self.mfa = MFAService(self)
 
     def audit(self, user_id: str | None, kind: str, **details) -> None:
         self.db.audit.insert_one(
@@ -69,13 +73,18 @@ class AuthService:
         for key, maximum in budgets:
             row = self.db.throttles.find_one_and_update(
                 {"_id": digest(f"{action}:{key}:{window}")},
-                {"$inc": {"count": 1}, "$setOnInsert": {"expires_at": now + timedelta(minutes=3)}},
+                {
+                    "$inc": {"count": 1},
+                    "$setOnInsert": {"expires_at": now + timedelta(minutes=3)},
+                },
                 upsert=True,
                 return_document=ReturnDocument.AFTER,
             )
             if row["count"] > maximum:
                 raise HTTPException(
-                    429, "Too many attempts. Try again shortly.", headers={"Retry-After": "60"}
+                    429,
+                    "Too many attempts. Try again shortly.",
+                    headers={"Retry-After": "60"},
                 )
 
     def create_session(
@@ -148,18 +157,44 @@ class AuthService:
             raise HTTPException(401, "Session expired. Sign in again.")
         return session, user
 
-    def rotate(self, response: Response, request: Request, user: dict, method: str) -> dict:
+    def rotate(
+        self,
+        response: Response,
+        request: Request,
+        user: dict | None,
+        method: str | None,
+    ) -> dict:
         previous, _ = self.resolve(request)
         self.db.sessions.delete_one({"_id": previous["_id"]})
         self.db.challenges.delete_many({"session_id": previous["_id"]})
+        self.db.mfa_setups.delete_one({"_id": previous["_id"]})
         return self.create_session(response, request, user, method)
 
     def recent(self, session: dict) -> None:
         threshold = self.now() - timedelta(seconds=self.settings.recent_auth_seconds)
         if session.get("authenticated_at") is None or session["authenticated_at"] < threshold:
             raise HTTPException(
-                403, "Recent authentication required. Verify your password or linked wallet."
+                403,
+                "Recent authentication required. Verify your password or linked wallet.",
+                headers={"X-Reauth-Required": "true"},
             )
+
+    def sign_in(self, response: Response, request: Request, user: dict, method: str) -> dict:
+        if not user.get("mfa"):
+            session = self.rotate(response, request, user, method)
+            self.audit(user["_id"], f"{method}_login")
+            return {"user": public_user(user), "csrf": session["csrf"]}
+        # A primary proof creates only an anonymous, short-lived pending session.
+        # Protected routes cannot see this account until its second factor succeeds.
+        session = self.rotate(response, request, None, None)
+        pending = {
+            "user_id": user["_id"],
+            "version": user["auth_version"],
+            "method": method,
+            "expires_at": self.now() + timedelta(minutes=5),
+        }
+        self.db.sessions.update_one({"_id": session["_id"]}, {"$set": {"pending_mfa": pending}})
+        return {"user": None, "csrf": session["csrf"], "mfa_required": True}
 
     def verify_password(self, password: str, user: dict | None) -> bool:
         stored = user.get("password_hash", self.dummy_hash) if user else self.dummy_hash
@@ -218,7 +253,12 @@ class AuthService:
         return {"id": key, "message": message, "expires_at": expires.isoformat()}
 
     def consume_challenge(
-        self, session: dict, user: dict | None, challenge_id: str, message: str, signature: str
+        self,
+        session: dict,
+        user: dict | None,
+        challenge_id: str,
+        message: str,
+        signature: str,
     ) -> dict:
         now = self.now()
         row = self.db.challenges.find_one(

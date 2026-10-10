@@ -21,7 +21,14 @@ def create_indexes(db: Database) -> None:
     db.users.create_index(
         "wallets", unique=True, partialFilterExpression={"wallets": {"$type": "string"}}
     )
-    for collection in ["sessions", "challenges", "reset_tokens", "throttles", "index_leases"]:
+    for collection in [
+        "sessions",
+        "challenges",
+        "reset_tokens",
+        "throttles",
+        "index_leases",
+        "mfa_setups",
+    ]:
         db[collection].create_index("expires_at", expireAfterSeconds=0)
     db.sessions.create_index("user_id")
     db.reset_tokens.create_index("user_id")

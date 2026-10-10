@@ -13,6 +13,7 @@ from pymongo.errors import PyMongoError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from auth.crypto import NoteCipher, NoteTampered
+from auth.mfa_routes import router as mfa_router
 from auth.routes import router as auth_router
 from auth.services import AuthService, utcnow
 from webapp.blockchain import ChainUnavailable, UnverifiedTransaction
@@ -45,7 +46,10 @@ class SecurityMiddleware:
                         (b"x-content-type-options", b"nosniff"),
                         (b"x-frame-options", b"DENY"),
                         (b"referrer-policy", b"no-referrer"),
-                        (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+                        (
+                            b"permissions-policy",
+                            b"camera=(), microphone=(), geolocation=()",
+                        ),
                         (
                             b"cache-control",
                             b"no-cache" if scope["path"].startswith("/static/") else b"no-store",
@@ -96,7 +100,11 @@ class SecurityMiddleware:
                 nonlocal delivered
                 if not delivered:
                     delivered = True
-                    return {"type": "http.request", "body": bytes(body), "more_body": False}
+                    return {
+                        "type": "http.request",
+                        "body": bytes(body),
+                        "more_body": False,
+                    }
                 return await receive()
 
             return await self.app(scope, buffered_receive, secured_send)
@@ -161,6 +169,7 @@ def create_app(settings: Settings | None = None, db=None, chain=None, clock=utcn
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=[urlparse(settings.origin).hostname])
     app.add_middleware(SecurityMiddleware, secure=settings.secure_cookie)
     app.include_router(auth_router)
+    app.include_router(mfa_router)
     app.include_router(vault_router)
 
     @app.exception_handler(ChainUnavailable)
@@ -174,14 +183,18 @@ def create_app(settings: Settings | None = None, db=None, chain=None, clock=utcn
     @app.exception_handler(NoteTampered)
     async def note_tampered(request: Request, exc: NoteTampered):
         return JSONResponse(
-            {"detail": "Encrypted note integrity check failed. Decryption was refused."}, 409
+            {"detail": "Encrypted data integrity check failed. Decryption was refused."},
+            409,
         )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError):
         # Pydantic's usual "input" field can echo submitted passwords/tokens.
         return JSONResponse(
-            {"detail": "Invalid request data.", "fields": [list(e["loc"]) for e in exc.errors()]},
+            {
+                "detail": "Invalid request data.",
+                "fields": [list(e["loc"]) for e in exc.errors()],
+            },
             422,
         )
 
