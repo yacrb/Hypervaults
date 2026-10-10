@@ -95,6 +95,10 @@ HV_AUTH_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
 uv run --with playwright playwright install chromium
 uv run --with playwright python tests/check_auth_ui.py
 uv run --with playwright python tests/check_account_ui.py
+
+# Real browser/HTTP/Mongo MFA enrollment and login with the chain deliberately offline.
+HV_AUTH_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+  uv run --with playwright python -m tests.check_mfa_e2e
 ```
 
 | Security case | Expected result |
