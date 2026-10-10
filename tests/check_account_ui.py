@@ -9,11 +9,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
+import segno
 from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "http://127.0.0.1:8088"
 ADDRESS = "0x1111111111111111111111111111111111111111"
+QR = segno.make_qr("otpauth://totp/HyperVaults:fixture?secret=JBSWY3DPEHPK3PXP&issuer=HyperVaults").png_data_uri(scale=5)
 WALLET = """
 import {api} from './api.js?v=2';
 window.walletActions = [];
@@ -32,7 +34,7 @@ export class Wallet extends EventTarget {
 """.replace("ADDRESS", ADDRESS)
 
 
-async def fixture(browser, has_password=True, config_failed=False):
+async def fixture(browser, has_password=True, config_failed=False, qr=QR):
     context = await browser.new_context(viewport={"width": 375, "height": 812})
     user = {"id": "fixture", "name": "Member", "role": "user", "email": "fixture@example.com" if has_password else None,
             "has_password": has_password, "mfa_enabled": False, "recovery_codes_remaining": 0, "wallets": [] if has_password else [ADDRESS]}
@@ -73,7 +75,7 @@ async def fixture(browser, has_password=True, config_failed=False):
         if path == "/api/auth/reauth":
             return await route.fulfill(json={"ok": True})
         if path == "/api/security/mfa/setup":
-            return await route.fulfill(json={"ok": True} if request.method == "DELETE" else {"secret": "JBSWY3DPEHPK3PXP", "uri": "otpauth://fixture"})
+            return await route.fulfill(json={"ok": True} if request.method == "DELETE" else {"secret": "JBSWY3DPEHPK3PXP", "qr_data_url": qr})
         if path == "/api/security/mfa/enable":
             if request.post_data_json["code"] != "123456":
                 return await route.fulfill(status=400, json={"detail": "Enter the six-digit code from your authenticator."})
@@ -171,6 +173,10 @@ async def main():
         await page.locator("dialog input[name=password]").fill("fixture-password")
         await page.locator("dialog button[type=submit]").click()
         await page.locator("#mfa-setup-form").wait_for()
+        await page.wait_for_function("document.getElementById('mfa-qr').naturalWidth > 0")
+        assert await page.locator("#mfa-secret").is_hidden()
+        await page.locator("#mfa-manual summary").click()
+        assert await page.locator("#mfa-secret").inner_text() == "JBSWY3DPEHPK3PXP"
         await page.locator("#mfa-setup-form input").fill("000000")
         await page.locator("#mfa-enable").click()
         await page.locator("#mfa-setup-form .form-message").filter(has_text="six-digit").wait_for()
@@ -178,6 +184,8 @@ async def main():
         await page.locator("#mfa-enable").click()
         await page.locator("#mfa-recovery").wait_for()
         assert await page.locator("#mfa-secret").inner_text() == ""
+        assert await page.locator("#mfa-qr").get_attribute("src") is None
+        assert not await page.locator("#mfa-manual").evaluate("node => node.open")
         assert len((await page.locator("#mfa-codes").inner_text()).splitlines()) == 8
         assert await page.locator("#mfa-status").inner_text() == "Enabled"
         await page.locator("#mfa-dismiss-codes").click()
@@ -199,6 +207,22 @@ async def main():
             logout = await page.locator("#logout").bounding_box()
             assert back["x"] + back["width"] <= logout["x"]
         await context.close()
+
+        # Missing/failed images retain a usable manual fallback; cancel clears both.
+        for qr in (None, "data:image/png;base64,invalid"):
+            context, page, requests = await fixture(browser, qr=qr)
+            await page.goto(BASE + "/security")
+            await page.locator("#mfa-start:enabled").click()
+            await page.locator("dialog input[name=password]").fill("fixture-password")
+            await page.locator("dialog button[type=submit]").click()
+            await page.locator("#mfa-secret").wait_for(state="visible")
+            assert await page.locator("#mfa-qr").is_hidden()
+            await page.locator("#mfa-cancel-setup").click()
+            await page.locator("#mfa-setup-form").wait_for(state="hidden")
+            assert await page.locator("#mfa-secret").inner_text() == ""
+            assert await page.locator("#mfa-qr").get_attribute("src") is None
+            assert not await page.locator("#mfa-manual").evaluate("node => node.open")
+            await context.close()
 
         context, page, requests = await fixture(browser, config_failed=True)
         await page.goto(BASE + "/security")

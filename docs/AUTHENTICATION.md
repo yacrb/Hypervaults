@@ -2,9 +2,10 @@
 
 ## Using two-factor authentication
 
-Open **Security → Set up authenticator**, confirm your identity, then add the
-displayed setup key to your authenticator using manual entry. Enter its six-digit
-code to enable protection. Download the eight recovery codes before leaving;
+Open **Security → Set up authenticator**, confirm your identity, then scan the
+QR code with your authenticator. **Can't scan?** reveals the manual setup key.
+Enter your authenticator's six-digit code to enable protection.
+Download the eight recovery codes before leaving;
 they are displayed once. Each recovery code works once.
 
 Email and linked-wallet sign-in both ask for an authenticator code when enabled.
@@ -77,6 +78,10 @@ account, authorization version and disabled/role state before allowing access.
 - Identity/IP budgets limit password, wallet and factor attempts. API validation
   and audit events omit submitted passwords, setup secrets and recovery codes.
   Codes and setup keys are never sent to third-party QR services or browser storage.
+- The app generates a black-on-white PNG QR code locally from the same enrollment
+  URI as the manual key. It is returned only in the authenticated, CSRF-protected,
+  no-store setup response; no public image URL or external QR service is used.
+  Canceling, enabling MFA or leaving the page clears the image and manual key.
 
 MFA protects website access. A wallet can still transact directly on-chain;
 website MFA cannot replace the wallet's own transaction approval or recovery rules.
@@ -103,6 +108,8 @@ HV_AUTH_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
 
 | Security case | Expected result |
 |---|---|
+| Decode the enrollment QR and its rendered desktop/mobile image | Correct account, issuer and TOTP parameters; scanned secret enables MFA. |
+| QR image unavailable | Manual key is available; cancel clears both image and key. |
 | Correct password or wallet proof, MFA unfinished | Anonymous pending session; protected account APIs return 401. |
 | Wrong, expired or previously accepted authenticator code | Refused; no authenticated session created. |
 | Simultaneous use of the same TOTP/recovery code | Exactly one verification succeeds. |

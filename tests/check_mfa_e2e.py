@@ -13,8 +13,13 @@ import socket
 import threading
 import uuid
 from datetime import UTC, datetime, timedelta
+from io import BytesIO
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import uvicorn
+import zxingcpp
+from PIL import Image
 from playwright.async_api import async_playwright
 from pymongo import MongoClient
 
@@ -52,11 +57,30 @@ async def check_flow(origin, clock):
             await page.locator('dialog input[name="password"]').fill(password)
             await page.locator('dialog button[type="submit"]').click()
             await page.locator("#mfa-setup-form").wait_for()
-            secret = await page.locator("#mfa-secret").inner_text()
+            await page.wait_for_function("document.getElementById('mfa-qr').naturalWidth > 0")
+            assert await page.locator("#mfa-secret").is_hidden()
+            # Decode the rendered image, including mobile resizing, with an independent reader.
+            scanned_uri = None
+            for width in (1280, 768, 375, 320):
+                await page.set_viewport_size({"width": width, "height": 900})
+                assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+                pixels = await page.locator("#mfa-qr").screenshot()
+                with Image.open(BytesIO(pixels)) as image:
+                    scanned = zxingcpp.read_barcode(image)
+                assert scanned is not None, f"QR did not decode at width {width}"
+                assert scanned_uri is None or scanned.text == scanned_uri
+                scanned_uri = scanned.text
+            secret = parse_qs(urlparse(scanned_uri).query)["secret"][0]
+            assert secret == await page.locator("#mfa-secret").text_content()
+            # Optional visual evidence contains only this disposable test account's enrollment.
+            if directory := os.environ.get("HV_AUTH_TEST_SCREENSHOTS"):
+                Path(directory).mkdir(parents=True, exist_ok=True)
+                await page.screenshot(path=str(Path(directory) / "mfa-qr-mobile.png"), full_page=True)
             code = totp(secret, int(clock[0].timestamp()) // 30)
             await page.locator('#mfa-setup-form input[name="code"]').fill(code)
             await page.locator("#mfa-enable").click()
             await page.locator("#mfa-recovery").wait_for()
+            assert await page.locator("#mfa-qr").get_attribute("src") is None
             codes = (await page.locator("#mfa-codes").inner_text()).splitlines()
             assert len(codes) == 8
             await page.locator("#mfa-dismiss-codes").click()
@@ -121,7 +145,7 @@ async def main():
             raise RuntimeError("Isolated application failed to start.")
         await check_flow(origin, clock)
         print(
-            "PASS: real registration, MFA enrollment, gated login and action-bound disable; chain offline. Existing accounts untouched."
+            "PASS: rendered QR decoding at four widths, real MFA enrollment, gated login and action-bound disable; chain offline. Existing accounts untouched."
         )
     finally:
         server.should_exit = True

@@ -7,8 +7,8 @@
   <title>HyperVaults · Account security</title>
   <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css?v=6">
-  <link rel="stylesheet" href="/static/account.css?v=1">
-  <script type="module" src="/static/js/account.js?v=1"></script>
+  <link rel="stylesheet" href="/static/account.css?v=2">
+  <script type="module" src="/static/js/account.js?v=2"></script>
 </head>
 <body class="account-body">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,8 +22,9 @@
         <p class="muted" id="mfa-description">Add an authenticator to protect your account.</p>
         <div class="form-actions"><button class="button" id="mfa-start" type="button" disabled>Set up authenticator</button><button class="button button-secondary" id="mfa-replace-codes" type="button" hidden>New recovery codes</button><button class="button button-secondary" id="mfa-disable" type="button" hidden>Turn off</button></div>
         <form id="mfa-setup-form" class="form-stack" method="post" hidden>
-          <p class="form-hint muted">In your authenticator, add an account using this setup key.</p>
-          <div class="setup-key"><code id="mfa-secret"></code><button id="mfa-copy-key" class="button button-secondary button-small" type="button">Copy key</button></div>
+          <p class="form-hint muted">Scan with your authenticator, then enter its code.</p>
+          <img id="mfa-qr" alt="MFA setup QR code" width="240" height="240" hidden>
+          <details id="mfa-manual"><summary>Can't scan?</summary><div class="setup-key"><code id="mfa-secret"></code><button id="mfa-copy-key" class="button button-secondary button-small" type="button">Copy key</button></div></details>
           <label>Authenticator code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" required></label>
           <div class="form-actions"><button id="mfa-enable" class="button" type="submit">Enable two-factor</button><button id="mfa-cancel-setup" class="button button-secondary" type="button">Cancel</button></div>
           <p class="form-message" role="status" aria-live="polite"></p>

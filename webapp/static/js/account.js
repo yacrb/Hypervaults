@@ -164,8 +164,14 @@ $('logout').addEventListener('click', action(async () => {
 
 function clearSetup() {
   $('mfa-setup-form').reset(); $('mfa-setup-form').hidden = true;
+  $('mfa-qr').removeAttribute('src'); $('mfa-qr').hidden = true; $('mfa-manual').open = false;
   $('mfa-secret').textContent = ''; $('mfa-setup-form').querySelector('.form-message').textContent = '';
 }
+// Keep enrollment usable if the image cannot load, without exposing the key by default.
+$('mfa-qr').addEventListener('error', () => {
+  if ($('mfa-setup-form').hidden) return;
+  $('mfa-qr').hidden = true; $('mfa-manual').open = true;
+});
 function showCodes(result) {
   user = result.user; clearSetup(); account();
   $('mfa-codes').textContent = result.recovery_codes.join('\n'); $('mfa-recovery').hidden = false;
@@ -174,7 +180,11 @@ function showCodes(result) {
 $('mfa-start').addEventListener('click', action(async () => {
   await reauthenticate(user, wallet);
   const result = await api('/security/mfa/setup', {method: 'POST'});
+  clearSetup();
   $('mfa-secret').textContent = result.secret; $('mfa-setup-form').hidden = false;
+  if (result.qr_data_url?.startsWith('data:image/png;base64,')) {
+    $('mfa-qr').src = result.qr_data_url; $('mfa-qr').hidden = false;
+  } else $('mfa-manual').open = true;
   account(); $('mfa-setup-form').elements.code.focus();
 }));
 $('mfa-setup-form').addEventListener('submit', async event => {

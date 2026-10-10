@@ -13,6 +13,9 @@
 .mfa-panel { border-color: #544368; }
 .mfa-panel .panel-body > p { margin-bottom: 0; }
 .mfa-panel form { max-width: 540px; padding-top: 18px; border-top: 1px solid var(--line); }
+#mfa-qr { display: block; width: 240px; max-width: 100%; height: auto; background: white; border-radius: 12px; image-rendering: pixelated; }
+#mfa-manual summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+#mfa-manual .setup-key { margin-top: 12px; }
 .setup-key { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--bg); border-radius: 12px; padding: 14px; }
 .setup-key code { overflow-wrap: anywhere; font-size: 14px; letter-spacing: 1px; }
 #mfa-codes { margin: 0; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
