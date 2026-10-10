@@ -61,6 +61,11 @@ Connect first, then click **Link wallet** and sign the ownership proof. Your ema
 session stays signed in; connecting alone does not link the wallet. The guide
 disappears after successful linking, and linked wallets are managed in **Security**.
 
+Wallet accounts can add email access in **Security → Set up email & password**.
+Connect the linked wallet, enter an email and matching passwords, then save.
+A wallet ownership proof authorizes setup; both sign-in methods use the same
+account. Existing email accounts instead enter their current password to change it.
+
 Wallet connection requests the selected network: **Anvil (31337)** or **Sepolia (11155111)**.
 Anvil can be added when missing; enable Sepolia in your wallet's test networks if needed.
 Approve the network request and sign-in message in your wallet. Signing in costs

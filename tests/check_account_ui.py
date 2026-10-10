@@ -102,8 +102,54 @@ async def main():
         assert await page.locator("#link-wallet").is_disabled()
         assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         await context.close()
+
+        context, page, requests = await fixture(browser, has_password=False)
+        await page.goto(BASE + "/security")
+        await page.locator("#connect-wallet:enabled").wait_for()
+        assert await page.locator("#password-title").inner_text() == "Set up email & password"
+        assert await page.locator("#current-password-label").is_hidden()
+        assert await page.locator("#reauth").is_hidden()
+        assert await page.locator("#save-password").is_disabled()
+        await page.locator("#connect-wallet").click()
+        await page.locator("#save-password:enabled").wait_for()
+        await page.locator('#password-form input[name="email"]').fill("new-access@example.com")
+        await page.locator('input[name="new_password"]').fill("fixture-new-password")
+        await page.locator('input[name="confirm_password"]').fill("fixture-other-password")
+        await page.locator("#save-password").click()
+        assert await page.locator('input[name="confirm_password"]').get_attribute("aria-invalid") == "true"
+        assert await page.evaluate("walletActions") == ["connect"]
+        await page.locator('input[name="confirm_password"]').fill("fixture-new-password")
+        await page.locator("#security-show-password").click()
+        assert await page.locator('input[name="confirm_password"]').get_attribute("type") == "text"
+        await page.locator("#save-password").click()
+        await page.wait_for_function("walletActions.includes('reauth')")
+        assert await page.locator("#connect-wallet").is_disabled()
+        await page.locator("#password-form").dispatch_event("submit")
+        await page.evaluate("cancelProof()")
+        await page.locator("#save-password:enabled").wait_for()
+        assert not any(path == "/api/auth/password" for path, _ in requests)
+        assert await page.locator('input[name="new_password"]').input_value() == "fixture-new-password"
+        await page.locator("#save-password").click()
+        await page.wait_for_function("walletActions.length === 3")
+        await page.evaluate("finishProof()")
+        await page.locator("#password-title").filter(has_text="Email & password").wait_for()
+        await page.locator("#password-email").filter(has_text="new-access@example.com").wait_for()
+        assert await page.locator("#current-password-label").is_visible()
+        assert await page.locator('input[name="new_password"]').input_value() == ""
+        assert await page.locator('input[name="new_password"]').get_attribute("type") == "password"
+        payloads = [body for path, body in requests if path == "/api/auth/password"]
+        assert payloads == [{"email": "new-access@example.com", "current_password": "", "new_password": "fixture-new-password"}]
+        await context.close()
+
+        context, page, _ = await fixture(browser)
+        await page.goto(BASE + "/security")
+        await page.locator("#save-password:enabled").wait_for()
+        assert await page.locator("#password-email-label").is_hidden()
+        assert await page.locator("#current-password-label").is_visible()
+        assert await page.locator('input[name="current_password"]').get_attribute("required") is not None
+        await context.close()
         await browser.close()
-        print("PASS: connect/link are separate, cancellation preserves setup, duplicate proofs are blocked, successful linking completes the guide.")
+        print("PASS: separate connect/link, proof cancellation/retry, duplicate guards, wallet-authorized email setup, password confirmation and current-password controls.")
 
 
 if __name__ == "__main__":

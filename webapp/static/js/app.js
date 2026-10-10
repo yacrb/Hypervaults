@@ -11,7 +11,7 @@ const screen = {
 }[view] || ['Overview', 'Your positions and rewards.'];
 let user = null, config = null, wallet = null, snapshot = null, prepared = null, transactionBusy = false;
 let toastTimer = null, refreshing = false, notePosition = null, positionFilter = 'all', previewFocus = null;
-let linkingWallet = false;
+let linkingWallet = false, passwordBusy = null;
 
 document.title = `HyperVaults · ${screen[0]}`;
 $('page-title').textContent = $('breadcrumb').textContent = screen[0];
@@ -46,6 +46,20 @@ function account() {
   $('admin-nav').hidden = user.role !== 'admin';
   walletSetupState();
 }
+function passwordFormState() {
+  if (!user) return;
+  const setup = !user.has_password, form = $('password-form');
+  $('password-title').textContent = setup ? 'Set up email & password' : 'Email & password';
+  $('password-email').hidden = setup; $('password-email').textContent = user.email || '';
+  $('password-email-label').hidden = !setup; form.elements.email.required = setup;
+  $('current-password-label').hidden = setup; form.elements.current_password.required = !setup;
+  $('new-password-label').textContent = setup ? 'Password' : 'New password';
+  $('password-setup-hint').textContent = setup ? '12+ characters. Confirm setup with your linked wallet.' : '12+ characters. Other sessions will sign out.';
+  $('save-password').textContent = passwordBusy === 'wallet' ? 'Waiting for wallet…' : passwordBusy ? 'Saving…' : setup ? 'Save email & password' : 'Update password';
+  $('save-password').disabled = !!passwordBusy || linkingWallet || (setup && (!wallet?.address || !user.wallets.includes(wallet.address)));
+  $('save-password').setAttribute('aria-busy', String(!!passwordBusy));
+  $('reauth').hidden = setup; $('reauth').disabled = !!passwordBusy;
+}
 function walletSetupState() {
   if (!user) return;
   const connected = !!wallet?.address, linked = connected && user.wallets.includes(wallet.address);
@@ -58,11 +72,12 @@ function walletSetupState() {
   }
   for (const id of ['wallet-setup-action', 'link-wallet']) {
     $(id).textContent = linkingWallet ? 'Waiting for signature…' : wallet?.connecting ? 'Connecting…' : linked ? 'Wallet linked' : connected ? 'Link wallet' : 'Connect wallet';
-    $(id).disabled = !wallet || wallet.connecting || linkingWallet || linked;
+    $(id).disabled = !wallet || wallet.connecting || linkingWallet || linked || !!passwordBusy;
     $(id).setAttribute('aria-busy', String(linkingWallet || !!wallet?.connecting));
   }
-  $('wallet-reauth').disabled = !linked || linkingWallet || wallet?.connecting;
-  $('connect-wallet').disabled = !wallet || wallet.connecting || linkingWallet;
+  $('wallet-reauth').disabled = !linked || linkingWallet || wallet?.connecting || !!passwordBusy;
+  $('connect-wallet').disabled = !wallet || wallet.connecting || linkingWallet || !!passwordBusy;
+  passwordFormState();
 }
 function walletState(message = '') {
   if (!wallet) return;
@@ -77,7 +92,7 @@ function walletState(message = '') {
   if (!$('wallet-setup').hidden) { notice.hidden = true; }
   else if ((!wallet.address && ['vaults', 'positions', 'security'].includes(view)) || (wallet.address && !user.wallets.includes(wallet.address))) {
     notice.hidden = false;
-    notice.append(element('span', '', message || (wallet.address ? 'Link this wallet in Security to use it with your account.' : 'Connect a wallet to use your tokens.')));
+    notice.append(element('span', '', message || (wallet.address ? 'Link this wallet in Security to use it with your account.' : view === 'security' ? 'Connect a linked wallet to continue.' : 'Connect a wallet to use your tokens.')));
     if (!wallet.address) {
       const connectButton = button('Connect wallet', () => $('connect-wallet').click(), true);
       connectButton.disabled = wallet.connecting;
@@ -333,12 +348,7 @@ async function renderSecurity() {
       account(); walletState(); await renderSecurity();
     }), true)); row.append(actions); $('wallet-list').append(row);
   }
-  let emailLabel = $('password-form').querySelector('[data-add-email]');
-  if (!user.has_password && !emailLabel) {
-    emailLabel = element('label', '', 'Email for password sign-in'); emailLabel.dataset.addEmail = 'true';
-    const input = element('input'); input.name = 'email'; input.type = 'email'; input.required = true; input.autocomplete = 'email'; emailLabel.append(input);
-    $('password-form').prepend(emailLabel);
-  } else if (user.has_password && emailLabel) emailLabel.remove();
+  passwordFormState();
   const [sessions, activity] = await Promise.all([api('/security/sessions'), api('/security/activity')]);
   $('session-list').replaceChildren();
   for (const session of sessions.sessions) {
@@ -353,7 +363,7 @@ async function renderSecurity() {
   activityEvents($('security-activity'), activity.events, true);
 }
 async function setupWallet() {
-  if (!wallet || linkingWallet || wallet.connecting) return;
+  if (!wallet || linkingWallet || wallet.connecting || passwordBusy) return;
   $('error-banner').hidden = true;
   if (!wallet.address) { await wallet.connect(); walletState(); return; }
   if (user.wallets.includes(wallet.address)) return;
@@ -377,13 +387,36 @@ $('reauth').addEventListener('click', action(async () => {
 }));
 $('password-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget, message = form.querySelector('.form-message');
-  message.classList.remove('is-error'); form.querySelector('button[type="submit"]').disabled = true;
+  if (!user || passwordBusy || linkingWallet) return;
+  const data = Object.fromEntries(new FormData(form)), setup = !user.has_password;
+  message.textContent = ''; message.classList.remove('is-error');
+  form.elements.confirm_password.removeAttribute('aria-invalid');
+  if (data.new_password !== data.confirm_password) {
+    message.textContent = 'Passwords do not match.'; message.classList.add('is-error');
+    form.elements.confirm_password.setAttribute('aria-invalid', 'true'); form.elements.confirm_password.focus(); return;
+  }
+  passwordBusy = setup ? 'wallet' : 'save'; walletSetupState();
   try {
-    const data = Object.fromEntries(new FormData(form));
-    const result = await api('/auth/password', {method: 'POST', body: data});
-    user = result.user; form.reset(); account(); message.textContent = 'Password updated. All other website sessions revoked.'; await renderSecurity();
+    if (setup) {
+      if (!wallet?.address || !user.wallets.includes(wallet.address)) throw new Error('Connect a linked wallet to set up email sign-in.');
+      await wallet.authenticate('reauth'); passwordBusy = 'save'; walletSetupState();
+    }
+    const body = {current_password: setup ? '' : data.current_password, new_password: data.new_password};
+    if (setup) body.email = data.email;
+    const result = await api('/auth/password', {method: 'POST', body});
+    user = result.user; form.reset(); account();
+    for (const name of ['new_password', 'confirm_password']) form.elements[name].type = 'password';
+    $('security-show-password').setAttribute('aria-label', 'Show new password'); $('security-show-password').setAttribute('aria-pressed', 'false');
+    message.textContent = setup ? 'Email sign-in is ready. Use email or your linked wallet.' : 'Password updated. Other sessions signed out.';
+    await renderSecurity();
   } catch (error) { message.textContent = walletError(error); message.classList.add('is-error'); }
-  finally { form.querySelector('button[type="submit"]').disabled = false; }
+  finally { passwordBusy = null; walletSetupState(); }
+});
+$('security-show-password').addEventListener('click', () => {
+  const form = $('password-form'), showing = form.elements.new_password.type === 'password';
+  for (const name of ['new_password', 'confirm_password']) form.elements[name].type = showing ? 'text' : 'password';
+  $('security-show-password').setAttribute('aria-label', showing ? 'Hide new password' : 'Show new password');
+  $('security-show-password').setAttribute('aria-pressed', String(showing));
 });
 $('revoke-others').addEventListener('click', action(async () => {
   const result = await api('/security/sessions/revoke-others', {method: 'POST'});
