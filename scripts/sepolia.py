@@ -84,12 +84,14 @@ class Deployment:
                 receipt = self.web3.eth.get_transaction_receipt(tx_hash)
             except TransactionNotFound:
                 return {'steps': steps, 'pending': tx_hash, 'index': index, 'label': STAGES[index], 'confirmations': 0}
-            if receipt.status != 1:
-                raise ValueError('A deployment transaction reverted. Inspect its receipt before continuing; it will not be resent automatically.')
             self.validate_transaction(index, self.web3.eth.get_transaction(tx_hash))
             if self.web3.eth.get_block(receipt.blockNumber).hash != receipt.blockHash:
                 raise ValueError('Deployment receipt is no longer canonical. Inspect the transaction before continuing.')
             depth = latest - receipt.blockNumber + 1
+            if receipt.status != 1:
+                return {'owner': self.owner, 'steps': steps, 'failed': tx_hash,
+                        'index': index, 'label': STAGES[index], 'confirmations': max(depth, 0),
+                        'can_retry': depth >= 6 and index == len(self.state['transactions']) - 1}
             if depth < 6:
                 return {'steps': steps, 'pending': tx_hash, 'index': index, 'label': STAGES[index], 'confirmations': max(depth, 0)}
             if index < 2:
@@ -111,6 +113,15 @@ class Deployment:
                           estimated_fee_eth=str(self.web3.from_wei(gas * self.web3.eth.gas_price, 'ether')))
         return result
 
+    def retry_failed(self, index, tx_hash):
+        status = self.status()
+        if (not status.get('can_retry') or status['index'] != index
+                or status['failed'].lower() != tx_hash.lower()):
+            raise ValueError('Only the last confirmed failed step can be retried')
+        self.state.setdefault('failed_transactions', []).append({'index': index, 'hash': tx_hash})
+        self.state['transactions'].pop()
+        self.save()
+
     def record(self, index, tx_hash):
         if type(index) is not int or not 0 <= index < len(STAGES):
             raise ValueError('Invalid deployment step')
@@ -120,7 +131,7 @@ class Deployment:
         if index < len(transactions) and transactions[index].lower() == tx_hash.lower():
             return  # Browser retries after a lost acknowledgement are idempotent.
         status = self.status()
-        if status.get('pending') or status.get('ready') or status['index'] != index:
+        if status.get('pending') or status.get('failed') or status.get('ready') or status['index'] != index:
             raise ValueError('Wait for the current transaction before sending another')
         tx = self.web3.eth.get_transaction(tx_hash)
         # Wallets can wrap a request in a smart-account batch. A confirmed revert
@@ -225,6 +236,8 @@ def serve(deployment, port=8090):
                 if self.path == '/transaction':
                     reverted = deployment.record(data['index'], data['hash'])
                     return self.reply(200, {'ok': True, 'reverted': bool(reverted)})
+                elif self.path == '/retry-failed':
+                    deployment.retry_failed(data['index'], data['hash'])
                 elif self.path == '/activate':
                     deployment.activate()
                     activated = True

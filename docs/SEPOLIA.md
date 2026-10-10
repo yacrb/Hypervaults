@@ -46,16 +46,18 @@ The helper never automatically resends a recorded transaction. A failed attempt
 awaiting acknowledgement can be cleared only after its reverted receipt has six
 canonical confirmations and matches the owner/network. Its hash is retained in
 `failed_transactions`; it does not advance setup. Replaced, cancelled, dropped,
-or already-recorded reverted transactions still require receipt inspection;
-do not erase progress to retry.
+transactions still require receipt inspection; do not erase progress to retry.
+A recorded failure can be retried from the setup button after six canonical
+confirmations, only when it is the final recorded step. Its hash moves to the
+failed-attempt history. Retry prepares the step; signing still requires a separate
+wallet approval and no transaction is automatically resent.
 
 Setup and vault verification accept standard wallet transactions and
 MetaMask v1.3.0 single-call owner self-delegations with the zero native-balance-change
 caveat: it decodes the execution and still requires the exact destination, value,
 and payload. Multiple calls, other delegates/enforcers/modes and relay senders are
-rejected. If a wallet execution reverts, switch **Account details → Smart account →
-Sepolia** off in MetaMask, review its wallet transaction, then resume setup.
-This changes only that network's wallet mode; the address stays the same. See
+rejected. Inspect any failed execution before retrying. Changing account mode is
+optional; it is not necessary for the supported single-call wrapper. See
 [MetaMask's account-mode guide](https://support.metamask.io/configure/accounts/switch-to-or-revert-from-a-smart-account/).
 EIP-7702 delegated accounts can authenticate with their own ECDSA key, but this
 does not enable general batched or relayed transaction verification. Receipt

@@ -188,13 +188,36 @@ class DeploymentTests(unittest.TestCase):
         self.plan.state['transactions'] = [TX_HASH]
         receipt = SimpleNamespace(status=0, blockNumber=100, blockHash=HexBytes('0x1234'))
         self.eth.get_transaction_receipt.return_value = receipt
-        with self.assertRaises(ValueError):
-            self.plan.status()
+        self.eth.get_transaction.return_value = self.valid
+        self.eth.get_block.return_value = SimpleNamespace(hash=HexBytes('0x1234'))
+        result = self.plan.status()
+        self.assertEqual(result['failed'], TX_HASH)
+        self.assertTrue(result['can_retry'])
+        self.eth.block_number = 104
+        self.assertFalse(self.plan.status()['can_retry'])
         receipt.status = 1
         self.eth.get_transaction.return_value = self.valid
         self.eth.get_block.return_value = SimpleNamespace(hash=HexBytes('0x5678'))
         with self.assertRaises(ValueError):
             self.plan.status()
+
+    def test_retry_preserves_failed_hash_without_advancing_setup(self):
+        self.plan.state['transactions'] = [TX_HASH]
+        self.plan.status = Mock(return_value={'can_retry': True, 'index': 0, 'failed': TX_HASH})
+        self.plan.retry_failed(0, TX_HASH)
+        self.assertEqual(self.plan.state['transactions'], [])
+        self.assertEqual(self.plan.state['failed_transactions'], [{'index': 0, 'hash': TX_HASH}])
+        self.plan.status.return_value = {'can_retry': False}
+        with self.assertRaises(ValueError):
+            self.plan.retry_failed(0, TX_HASH)
+
+    def test_retry_rejects_mismatched_step_or_hash(self):
+        self.plan.state['transactions'] = [TX_HASH]
+        self.plan.status = Mock(return_value={'can_retry': True, 'index': 0, 'failed': TX_HASH})
+        for index, tx_hash in [(1, TX_HASH), (0, '0x' + 'b' * 64)]:
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                self.plan.retry_failed(index, tx_hash)
+        self.assertEqual(self.plan.state['transactions'], [TX_HASH])
 
     def test_confirmed_contract_address_supplies_next_step(self):
         self.plan.state['transactions'] = [TX_HASH]

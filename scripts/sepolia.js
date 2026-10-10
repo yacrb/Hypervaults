@@ -32,6 +32,15 @@ async function refresh() {
       link.textContent = `${step.label} ✓`; link.className = 'text-link';
       link.href = `https://sepolia.etherscan.io/tx/${step.hash}`; link.target = '_blank'; link.rel = 'noopener noreferrer'; item.append(link); return item;
     }));
+    if (current.failed) {
+      $('owner').textContent = current.owner;
+      $('status').textContent = `${current.label} failed · ${Math.min(current.confirmations, 6)}/6 confirmations`;
+      $('cost').textContent = 'Retry prepares a new wallet request.';
+      $('continue').textContent = `Retry ${current.label.toLowerCase()}`;
+      $('continue').disabled = busy || !current.can_retry;
+      if (!current.can_retry) timer = setTimeout(refresh, 12000);
+      return;
+    }
     if (current.pending) {
       $('status').textContent = `${current.label} · ${Math.min(current.confirmations, 6)}/6 confirmations`;
       $('cost').textContent = ''; timer = setTimeout(refresh, 12000); return;
@@ -50,6 +59,10 @@ $('continue').addEventListener('click', async () => {
   let failure = null;
   busy = true; $('continue').disabled = true; $('continue').setAttribute('aria-busy', 'true');
   try {
+    if (current.failed) {
+      await request('/retry-failed', {index: current.index, hash: current.failed});
+      reverted = false; return;
+    }
     if (current.ready) {
       await request('/activate', {});
       $('status').textContent = 'Sepolia activated. Starting HyperVaults…';
