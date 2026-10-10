@@ -60,6 +60,9 @@ function availableWallets() {
 }
 
 function selectWallet() {
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+  const detected = availableWallets();
+  if (detected.length === 1) return Promise.resolve(detected[0]);
   const dialog = element('dialog', 'wallet-picker'); dialog.id = 'wallet-picker';
   dialog.setAttribute('aria-labelledby', 'wallet-picker-title');
   const close = element('button', 'icon-button dialog-close'); close.type = 'button';
@@ -73,7 +76,7 @@ function selectWallet() {
     function render() {
       options.replaceChildren();
       const found = availableWallets();
-      const entries = [...found, ...Object.entries(brands).filter(([id]) => !found.some(wallet => wallet.id === id)).map(([id, brand]) => ({id, ...brand}))];
+      const entries = found.length ? found : Object.entries(brands).map(([id, brand]) => ({id, ...brand}));
       for (const entry of entries) {
         const brand = brands[entry.id], row = element(entry.provider ? 'button' : 'a', 'wallet-option');
         if (brand) { const logo = element('img'); logo.src = `/static/wallets/${brand.logo}.svg`; logo.alt = ''; row.append(logo); }
