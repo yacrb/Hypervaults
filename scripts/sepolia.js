@@ -34,7 +34,7 @@ async function refresh() {
     }
     $('owner').textContent = current.owner;
     $('status').textContent = current.ready ? 'Contracts and funding verified. Activate Sepolia to finish.' : `Step ${current.index + 1} of 7 · ${current.label}`;
-    $('cost').textContent = current.ready ? '' : `Estimated gas fee: ${Number(current.estimated_fee_eth).toPrecision(3)} test ETH. Review the final fee in your wallet.`;
+    $('cost').textContent = current.ready ? '' : 'Review the network fee in your wallet before approving. Your wallet may choose a different fee than the RPC estimate.';
     $('continue').textContent = current.ready ? 'Activate Sepolia' : wallet.address ? current.label : 'Connect wallet';
     $('continue').disabled = busy;
   } catch (error) { showError(error); }
