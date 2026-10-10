@@ -15,7 +15,8 @@ BASE = "http://127.0.0.1:8088"
 
 
 async def fixture(browser, *, session_gate=None, config_gate=None, login_gate=None,
-                  session_failed=False, config_failed=False, script_failed=False):
+                  session_failed=False, config_failed=False, script_failed=False,
+                  mfa=False, pending=False, mfa_gate=None):
     context = await browser.new_context(viewport={"width": 375, "height": 812})
     await context.add_init_script("""
         window.walletRequests = 0;
@@ -30,6 +31,7 @@ async def fixture(browser, *, session_gate=None, config_gate=None, login_gate=No
     requests, started = [], asyncio.Event()
 
     async def route_request(route):
+        nonlocal pending
         request = route.request
         path = urlparse(request.url).path
         requests.append((request.method, request.url))
@@ -38,7 +40,7 @@ async def fixture(browser, *, session_gate=None, config_gate=None, login_gate=No
             if session_gate:
                 await session_gate.wait()
             await route.fulfill(status=503 if session_failed else 200, json={
-                "detail": "Session unavailable.", "user": None, "csrf": "fixture-csrf",
+                "detail": "Session unavailable.", "user": None, "csrf": "fixture-csrf", "mfa_required": pending,
             })
         elif path == "/api/config":
             if config_gate:
@@ -52,7 +54,28 @@ async def fixture(browser, *, session_gate=None, config_gate=None, login_gate=No
             assert request.headers.get("x-csrf-token") == "fixture-csrf"
             if login_gate:
                 await login_gate.wait()
-            await route.fulfill(status=401, json={"detail": "Invalid credentials or unavailable account."})
+            if mfa:
+                pending = True
+                await route.fulfill(json={"user": None, "csrf": "fixture-csrf", "mfa_required": True})
+            else:
+                await route.fulfill(status=401, json={"detail": "Invalid credentials or unavailable account."})
+        elif path == "/api/auth/mfa/verify":
+            if mfa_gate:
+                await mfa_gate.wait()
+            if request.post_data_json["code"] not in {"123456", "a" * 32}:
+                return await route.fulfill(status=400, json={"detail": "Code is invalid or already used. Try the next code."})
+            pending = False
+            await route.fulfill(json={"user": {"id": "fixture"}, "csrf": "fixture-csrf"})
+        elif path == "/api/auth/logout":
+            pending = False
+            await route.fulfill(json={"ok": True})
+        elif path == "/api/auth/reset":
+            data = request.post_data_json
+            if not data.get("mfa_code"):
+                return await route.fulfill(status=403, headers={"X-MFA-Required": "true"}, json={"detail": "Enter an authenticator or recovery code."})
+            await route.fulfill(json={"message": "Password reset. Sign in with your new password."})
+        elif path == "/overview":
+            await route.fulfill(body="<!doctype html><h1>Fixture dashboard</h1>", content_type="text/html")
         elif path.startswith("/static/"):
             source = (ROOT / "webapp" / path.lstrip("/")).resolve()
             assert source.is_relative_to(ROOT / "webapp/static")
@@ -95,7 +118,7 @@ async def main():
         await page.locator('#auth-submit[aria-busy="true"]').wait_for()
         assert await page.locator("#auth-submit").inner_text() == "Signing in…"
         config_gate.set()
-        await page.locator(".environment").filter(has_text="Sepolia").wait_for()
+        await page.wait_for_function("document.querySelector('#siwe-login').disabled")
         assert await page.locator("#siwe-login").is_disabled()
         await page.locator("#auth-form").dispatch_event("submit")
         await page.locator("#siwe-login").dispatch_event("click")
@@ -148,12 +171,65 @@ async def main():
             await context.close()
         context, page, _, _ = await fixture(browser)
         await page.goto(BASE + "/reset")
-        await page.locator(".environment").filter(has_text="Sepolia").wait_for()
+        await page.locator("#auth-message").filter(has_text="valid recovery link").wait_for()
         assert await page.locator("#auth-submit").is_disabled()
         await context.close()
 
+        mfa_gate = asyncio.Event()
+        context, page, requests, _ = await fixture(browser, mfa=True, mfa_gate=mfa_gate)
+        await page.goto(BASE + "/login")
+        await enabled(page, "#auth-submit")
+        await page.locator("input[name=email]").fill("fixture@example.com")
+        await page.locator("input[name=password]").fill("fixture-password")
+        await page.locator("#auth-submit").click()
+        await page.locator("#mfa-form").wait_for()
+        assert await page.locator("#auth-form").is_hidden()
+        assert await page.locator("input[name=password]").input_value() == ""
+        await page.locator("#auth-form").dispatch_event("submit")
+        assert sum("/auth/login" in url for _, url in requests) == 1
+        assert page.url.endswith("/login")
+        await page.locator("#mfa-form input").fill("000000")
+        await page.locator("#mfa-submit").click()
+        await page.locator('#mfa-submit[aria-busy="true"]').wait_for()
+        await page.locator("#mfa-form").dispatch_event("submit")
+        assert await page.locator("#mfa-cancel").is_disabled()
+        mfa_gate.set()
+        await page.locator("#auth-message").filter(has_text="invalid or already used").wait_for()
+        assert sum("/auth/mfa/verify" in url for _, url in requests) == 1
+        await page.locator("#mfa-use-recovery").click()
+        await page.locator("#mfa-form input").fill("a" * 32)
+        await page.locator("#mfa-submit").click()
+        await page.wait_for_url(BASE + "/overview")
+        await context.close()
+
+        context, page, requests, _ = await fixture(browser, pending=True)
+        await page.goto(BASE + "/login")
+        await page.locator("#mfa-form").wait_for()
+        assert not any("/api/config" in url for _, url in requests)
+        await page.locator("#mfa-cancel").click()
+        await page.locator("#auth-form").wait_for()
+        assert any("/auth/logout" in url for _, url in requests)
+        await context.close()
+
+        context, page, requests, _ = await fixture(browser)
+        await page.goto(BASE + "/reset#token=" + "a" * 32)
+        await enabled(page, "#auth-submit")
+        assert page.url.endswith("/reset")
+        await page.locator("input[name=password]").fill("fixture-new-password")
+        await page.locator("input[name=confirm]").fill("fixture-new-password")
+        await page.locator("#auth-submit").click()
+        await page.locator("#mfa-form").wait_for()
+        assert await page.locator("#mfa-submit").inner_text() == "Verify & reset password"
+        await page.locator("#mfa-form input").fill("123456")
+        await page.locator("#mfa-submit").click()
+        await page.locator("#auth-message").filter(has_text="Password reset.").wait_for()
+        assert await page.locator("#mfa-form").is_hidden()
+        assert await page.locator("#auth-links").is_visible()
+        assert all("fixture-new-password" not in url for _, url in requests)
+        await context.close()
+
         await browser.close()
-        print("PASS: delayed startup, one sign-in at a time, wallet cancellation, failure recovery and POST fallback.")
+        print("PASS: delayed startup, one sign-in at a time, wallet cancellation, MFA retry/recovery/duplicate guards/cancellation, protected reset and POST fallback.")
 
 
 if __name__ == "__main__":

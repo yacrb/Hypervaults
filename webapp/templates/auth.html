@@ -7,13 +7,12 @@
   <title>HyperVaults · Sign in</title>
   <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css?v=6">
-  <script type="module" src="/static/js/auth.js?v=6"></script>
+  <script type="module" src="/static/js/auth.js?v=7"></script>
 </head>
 <body class="auth-body">
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="auth-header">
     <a class="brand" href="/login"><img src="/static/favicon.svg?v=2" alt="" width="32" height="32">HyperVaults</a>
-    <span class="environment"><span class="status-dot"></span>Anvil</span>
   </header>
   <main id="main" class="auth-layout">
     <section class="auth-intro" aria-labelledby="intro-title">
@@ -35,8 +34,14 @@
         <p id="password-hint" class="muted form-hint" hidden>Use 12 or more characters.</p>
         <a id="recovery-link" class="text-link recovery-link" href="/recover">Forgot password?</a>
         <button id="auth-submit" class="button full-width" type="submit" disabled>Sign in</button>
-        <p id="auth-message" class="form-message" role="status" aria-live="polite"></p>
       </form>
+      <form id="mfa-form" class="form-stack" method="post" hidden>
+        <label><span id="mfa-label">Authenticator code</span><input name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" required></label>
+        <button id="mfa-submit" class="button full-width" type="submit" disabled>Verify & sign in</button>
+        <button id="mfa-use-recovery" class="text-link" type="button">Use a recovery code</button>
+        <button id="mfa-cancel" class="text-link" type="button">Back to sign in</button>
+      </form>
+      <p id="auth-message" class="form-message" role="status" aria-live="polite"></p>
       <div id="auth-links" class="auth-links"><a class="text-link" href="/register">Create an account <span aria-hidden="true">↗</span></a></div>
     </section>
   </main>

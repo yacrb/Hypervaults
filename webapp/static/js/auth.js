@@ -3,6 +3,7 @@ import {Wallet, walletError} from './wallet.js?v=5';
 
 const view = location.pathname.slice(1), form = $('auth-form'), message = $('auth-message');
 let resetToken = null, wallet = null, sessionReady = false, busy = null;
+let mfaMode = null, resetBody = null, usingRecovery = false;
 const titles = {login: 'Welcome back', register: 'Create an account', recover: 'Forgot your password?', reset: 'Set a new password'};
 $('auth-title').textContent = titles[view] || titles.login;
 document.title = `HyperVaults · ${$('auth-title').textContent}`;
@@ -41,6 +42,18 @@ if (view === 'reset') {
 
 function errorMessage(error) { message.textContent = walletError(error); message.classList.add('is-error'); }
 
+function showMfa(mode = 'login') {
+  mfaMode = mode; form.reset(); form.hidden = true;
+  $('wallet-auth').hidden = $('auth-links').hidden = true;
+  $('auth-title').textContent = 'Two-factor verification';
+  $('auth-description').hidden = false;
+  $('auth-description').textContent = 'Enter the code from your authenticator.';
+  $('mfa-form').hidden = false;
+  $('mfa-submit').textContent = mode === 'reset' ? 'Verify & reset password' : 'Verify & sign in';
+  message.textContent = ''; message.classList.remove('is-error');
+  setBusy(); $('mfa-form').elements.code.focus();
+}
+
 function setBusy(method = null) {
   busy = method;
   $('auth-submit').disabled = !sessionReady || !!busy || (view === 'reset' && !resetToken);
@@ -49,11 +62,13 @@ function setBusy(method = null) {
   $('siwe-login').setAttribute('aria-busy', String(busy === 'wallet'));
   $('auth-submit').textContent = busy === 'email' ? pendingLabel : submitLabel;
   $('wallet-login-label').textContent = busy === 'wallet' ? 'Waiting for wallet…' : 'Continue with wallet';
+  for (const id of ['mfa-submit', 'mfa-use-recovery', 'mfa-cancel']) $(id).disabled = !sessionReady || !!busy;
+  $('mfa-submit').setAttribute('aria-busy', String(busy === 'mfa'));
 }
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  if (!sessionReady || busy || (view === 'reset' && !resetToken)) return;
+  if (!sessionReady || busy || mfaMode || (view === 'reset' && !resetToken)) return;
   message.textContent = ''; message.classList.remove('is-error');
   const data = Object.fromEntries(new FormData(form));
   if (['register', 'reset'].includes(view) && data.password !== data.confirm) { errorMessage(new Error('Passwords do not match.')); return; }
@@ -67,9 +82,15 @@ form.addEventListener('submit', async event => {
       const result = await api('/auth/reset', {method: 'POST', body: {token: resetToken, password: data.password}});
       resetToken = null; form.reset(); message.textContent = result.message;
       $('auth-submit').hidden = true; return;
-    } else await api('/auth/login', {method: 'POST', body: {email: data.email, password: data.password}});
+    } else {
+      const result = await api('/auth/login', {method: 'POST', body: {email: data.email, password: data.password}});
+      if (result.mfa_required) { showMfa(); return; }
+    }
     form.reset(); location.assign('/overview');
-  } catch (error) { errorMessage(error); }
+  } catch (error) {
+    if (view === 'reset' && error.mfaRequired) { resetBody = {token: resetToken, password: data.password}; showMfa('reset'); }
+    else errorMessage(error);
+  }
   finally { setBusy(); }
 });
 $('show-password').addEventListener('click', () => {
@@ -79,11 +100,50 @@ $('show-password').addEventListener('click', () => {
   $('show-password').setAttribute('aria-pressed', String(showing));
 });
 $('siwe-login').addEventListener('click', async () => {
-  if (!sessionReady || busy || !wallet) return;
+  if (!sessionReady || busy || mfaMode || !wallet) return;
   setBusy('wallet'); message.classList.remove('is-error'); message.textContent = '';
-  try { await wallet.connect(); message.textContent = 'Confirm the sign-in message in your wallet.'; await wallet.authenticate('login'); location.assign('/overview'); }
+  try {
+    await wallet.connect(); message.textContent = 'Confirm the sign-in message in your wallet.';
+    const result = await wallet.authenticate('login');
+    if (result.mfa_required) showMfa(); else location.assign('/overview');
+  }
   catch (error) { if (error.code !== 'WALLET_SELECTION_CANCELLED') errorMessage(error); else message.textContent = ''; }
   finally { setBusy(); }
+});
+
+$('mfa-form').addEventListener('submit', async event => {
+  event.preventDefault(); if (!sessionReady || busy || !mfaMode) return;
+  const code = event.currentTarget.elements.code.value.trim();
+  setBusy('mfa'); message.textContent = ''; message.classList.remove('is-error');
+  try {
+    if (mfaMode === 'reset') {
+      const result = await api('/auth/reset', {method: 'POST', body: {...resetBody, mfa_code: code}});
+      resetBody = null; resetToken = null; $('mfa-form').reset(); $('mfa-form').hidden = true;
+      message.textContent = result.message; $('auth-links').hidden = false;
+    } else {
+      await api('/auth/mfa/verify', {method: 'POST', body: {code}});
+      $('mfa-form').reset(); location.assign('/overview');
+    }
+  } catch (error) { errorMessage(error); $('mfa-form').elements.code.select(); }
+  finally { setBusy(); }
+});
+$('mfa-use-recovery').addEventListener('click', () => {
+  usingRecovery = !usingRecovery;
+  const input = $('mfa-form').elements.code;
+  input.value = ''; input.inputMode = usingRecovery ? 'text' : 'numeric';
+  input.maxLength = usingRecovery ? 64 : 6; input.minLength = usingRecovery ? 32 : 6;
+  input.pattern = usingRecovery ? '[A-Fa-f0-9\\-]{32,64}' : '[0-9]{6}';
+  input.placeholder = usingRecovery ? 'Saved recovery code' : '000000';
+  $('mfa-label').textContent = usingRecovery ? 'Recovery code' : 'Authenticator code';
+  $('mfa-use-recovery').textContent = usingRecovery ? 'Use an authenticator code' : 'Use a recovery code';
+  $('auth-description').textContent = usingRecovery ? 'Each recovery code works once.' : 'Enter the code from your authenticator.';
+  input.focus();
+});
+$('mfa-cancel').addEventListener('click', async () => {
+  if (busy) return;
+  setBusy('mfa');
+  try { await api('/auth/logout', {method: 'POST'}); resetBody = null; form.reset(); $('mfa-form').reset(); location.assign('/login'); }
+  catch (error) { errorMessage(error); setBusy(); }
 });
 
 // Bind submission guards before waiting for session or wallet configuration.
@@ -92,12 +152,16 @@ try {
   if (session.user && ['login', 'register'].includes(view)) location.replace('/overview');
   else {
     sessionReady = true; setBusy();
-    try {
+    if (session.mfa_required && view !== 'reset') showMfa();
+    if (['login', 'register'].includes(view) && !mfaMode) try {
       const config = await api('/config');
       wallet = new Wallet(config);
-      wallet.addEventListener('status', event => { message.textContent = event.detail; message.classList.remove('is-error'); });
-      document.querySelector('.environment').lastChild.textContent = config.chain_id === 31337 ? 'Anvil' : 'Sepolia';
+      wallet.addEventListener('status', event => { if (!mfaMode) { message.textContent = event.detail; message.classList.remove('is-error'); } });
     } catch (error) { $('siwe-login').title = error.message; }
     setBusy(busy);
   }
 } catch (error) { errorMessage(error); setBusy(); }
+
+// Credentials stay only in the active form or pending reset request, never storage.
+window.addEventListener('pagehide', () => { form.reset(); $('mfa-form').reset(); resetBody = null; });
+window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
