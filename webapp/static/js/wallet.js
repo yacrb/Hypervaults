@@ -234,7 +234,7 @@ export class Wallet extends EventTarget {
       token: new Contract(this.config.token_address, this.config.token_abi, signer),
       vault: new Contract(this.config.vault_address, this.config.vault_abi, signer)};
   }
-  async authenticate(action) {
+  async authenticate(action, mfaCode = '', mfaAction = null) {
     if (!this.address) await this.connect();
     const address = this.address, generation = this.generation;
     const challenge = await api('/auth/challenge', {method: 'POST', body: {address, action}});
@@ -242,6 +242,9 @@ export class Wallet extends EventTarget {
     const signer = await this.provider.getSigner(address);
     const signature = await signer.signMessage(challenge.message);
     await this.assertContext(generation, address);
-    return api('/auth/verify', {method: 'POST', body: {id: challenge.id, message: challenge.message, signature}});
+    const body = {id: challenge.id, message: challenge.message, signature};
+    if (mfaCode) body.mfa_code = mfaCode;
+    if (mfaAction) body.mfa_action = mfaAction;
+    return api('/auth/verify', {method: 'POST', body});
   }
 }

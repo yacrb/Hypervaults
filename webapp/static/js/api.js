@@ -18,7 +18,12 @@ export async function api(path, {method = 'GET', body, timeout = 20000} = {}) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = await response.json().catch(() => ({detail: 'The server returned an unreadable response.'}));
-    if (!response.ok) throw new ApiError(data.detail || 'Request failed.', response.status, data.state);
+    if (!response.ok) {
+      const error = new ApiError(data.detail || 'Request failed.', response.status, data.state);
+      error.mfaRequired = response.headers.get('X-MFA-Required') === 'true';
+      error.reauthRequired = response.headers.get('X-Reauth-Required') === 'true';
+      throw error;
+    }
     if (data.csrf) csrf = data.csrf;
     return data;
   } catch (error) {
