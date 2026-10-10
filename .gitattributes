@@ -1,2 +1,8 @@
-# Reports are binary assets, even when the PDF writer uses text-safe streams.
+* text=auto eol=lf
+*.webp binary
+docs/** linguist-documentation
+webapp/static/vendor/** linguist-vendored
+webapp/contracts/abi.json linguist-generated
+
+# Reports may contain text-safe streams but should always use binary diffs.
 *.pdf binary
