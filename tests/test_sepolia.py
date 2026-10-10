@@ -5,9 +5,11 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from hexbytes import HexBytes
+from eth_abi import encode
 from web3.exceptions import TransactionNotFound
 
-from scripts.sepolia import Deployment
+from scripts.sepolia import (Deployment, setup_call, DELEGATION_MANAGER, BALANCE_ENFORCER,
+                             DELEGATION_TYPE, REDEEM_SELECTOR, REDEEM_TYPES)
 from webapp.networks import SEPOLIA_GENESIS
 
 OWNER = '0x1111111111111111111111111111111111111111'
@@ -34,6 +36,35 @@ class DeploymentTests(unittest.TestCase):
                            ('to', OWNER), ('input', HexBytes('0x6001')), ('value', 1), ('chainId', 1)]:
             with self.subTest(key=key), self.assertRaises(ValueError):
                 self.plan.validate_transaction(0, {**self.valid, key: value})
+
+    def wrapped(self, modes=None, executions=None, delegator=OWNER, enforcer=BALANCE_ENFORCER):
+        caveat = (enforcer, b'\x01' + bytes.fromhex(OWNER[2:]) + bytes(32), b'')
+        delegation = (OWNER, delegator, b'\xff' * 32, [caveat], 1, bytes(65))
+        permission = encode([DELEGATION_TYPE], [[delegation]])
+        execution = bytes.fromhex(OWNER[2:]) + bytes(32) + b'\x60\x00\x60\x00'
+        payload = REDEEM_SELECTOR + encode(REDEEM_TYPES, [[permission], modes or [bytes(32)], executions or [execution]])
+        return {**self.valid, 'to': DELEGATION_MANAGER, 'input': payload}
+
+    def test_single_owner_wallet_execution_preserves_exact_payload_validation(self):
+        tx = self.wrapped()
+        self.plan.expected.return_value['to'] = OWNER
+        self.plan.expected.return_value['data'] = '0x60006000'
+        self.plan.validate_transaction(3, tx)
+        self.plan.expected.return_value['data'] = '0x6001'
+        with self.assertRaises(ValueError):
+            self.plan.validate_transaction(3, tx)
+
+    def test_wrapped_wallet_execution_rejects_batch_delegation_value_and_hooks(self):
+        execution = bytes.fromhex(OWNER[2:]) + bytes(32) + b'\x60\x00\x60\x00'
+        cases = [self.wrapped(modes=[b'\x01' + bytes(31)]),
+                 self.wrapped(executions=[execution, execution]),
+                 self.wrapped(executions=[execution[:20] + (1).to_bytes(32, 'big') + execution[52:]]),
+                 self.wrapped(delegator='0x2222222222222222222222222222222222222222'),
+                 self.wrapped(enforcer=OWNER)]
+        trailing = self.wrapped(); trailing['input'] += bytes(32); cases.append(trailing)
+        for tx in cases:
+            with self.subTest(payload=tx['input'][:4]), self.assertRaises(ValueError):
+                setup_call(tx, OWNER)
 
     def test_record_is_durable_and_duplicate_ack_is_idempotent(self):
         self.plan.status = Mock(return_value={'index': 0})

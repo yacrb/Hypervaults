@@ -49,14 +49,16 @@ canonical confirmations and matches the owner/network. Its hash is retained in
 or already-recorded reverted transactions still require receipt inspection;
 do not erase progress to retry.
 
-Use standard wallet transactions for setup and vault operations. MetaMask can
-wrap requests in smart-account batches, which the exact-payload verifier does
-not support. If a batch reverts, switch **Account details → Smart account →
+Use standard wallet transactions for vault operations. Setup can also acknowledge
+MetaMask v1.3.0 single-call owner self-delegations with the zero native-balance-change
+caveat: it decodes the execution and still requires the exact destination, value,
+and payload. Multiple calls, other delegates/enforcers/modes and relay senders are
+rejected. If a wallet execution reverts, switch **Account details → Smart account →
 Sepolia** off in MetaMask, review its wallet transaction, then resume setup.
 This changes only that network's wallet mode; the address stays the same. See
 [MetaMask's account-mode guide](https://support.metamask.io/configure/accounts/switch-to-or-revert-from-a-smart-account/).
 EIP-7702 delegated accounts can authenticate with their own ECDSA key, but this
-does not enable batched or relayed transaction verification.
+does not enable general batched or relayed transaction verification.
 
 Restart the selected network with:
 
