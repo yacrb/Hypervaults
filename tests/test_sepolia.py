@@ -7,9 +7,12 @@ from unittest.mock import Mock
 from hexbytes import HexBytes
 from eth_abi import encode
 from web3.exceptions import TransactionNotFound
+from web3 import Web3
+from webapp.blockchain import ChainService, UnverifiedTransaction
 
-from scripts.sepolia import (Deployment, setup_call, DELEGATION_MANAGER, BALANCE_ENFORCER,
-                             DELEGATION_TYPE, REDEEM_SELECTOR, REDEEM_TYPES)
+from scripts.sepolia import Deployment
+from webapp.wallets import (wallet_call, DELEGATION_MANAGER, BALANCE_ENFORCER,
+                            DELEGATION_TYPE, REDEEM_SELECTOR, REDEEM_TYPES)
 from webapp.networks import SEPOLIA_GENESIS
 
 OWNER = '0x1111111111111111111111111111111111111111'
@@ -64,7 +67,39 @@ class DeploymentTests(unittest.TestCase):
         trailing = self.wrapped(); trailing['input'] += bytes(32); cases.append(trailing)
         for tx in cases:
             with self.subTest(payload=tx['input'][:4]), self.assertRaises(ValueError):
-                setup_call(tx, OWNER)
+                wallet_call(tx, OWNER)
+
+    def test_app_verification_keeps_signer_target_event_and_confirmation_guards(self):
+        chain = object.__new__(ChainService)
+        chain.settings = SimpleNamespace(chain_id=11155111, confirmations=6)
+        chain.validated_block, chain.sync = Mock(), Mock()
+        chain.vault = SimpleNamespace(address=OWNER)
+        chain.token = SimpleNamespace(address='0x2222222222222222222222222222222222222222')
+        receipt = {'transactionHash': HexBytes(TX_HASH), 'blockNumber': 100,
+                   'blockHash': HexBytes('0x1234'), 'status': 1, 'logs': [{}]}
+        eth = Mock(block_number=106)
+        eth.get_transaction_receipt.return_value = receipt
+        eth.get_transaction.return_value = self.wrapped()
+        eth.get_block.return_value = SimpleNamespace(hash=HexBytes('0x1234'))
+        chain.web3 = SimpleNamespace(eth=eth, to_hex=Web3.to_hex)
+        event = {'kind': 'PositionOpened', 'args': {'owner': OWNER}}
+        chain.decode_log = Mock(return_value=event)
+        self.assertEqual(chain.verify_transaction(TX_HASH, 'deposit', [OWNER])['state'], 'confirmed')
+        eth.block_number = 104
+        self.assertEqual(chain.verify_transaction(TX_HASH, 'deposit', [OWNER])['state'], 'pending')
+        eth.block_number = 106
+        for kind, wallets in [('deposit', []), ('approve', [OWNER])]:
+            with self.subTest(kind=kind), self.assertRaises(UnverifiedTransaction):
+                chain.verify_transaction(TX_HASH, kind, wallets)
+        chain.decode_log.return_value = {'kind': 'PositionOpened', 'args': {'owner': chain.token.address}}
+        with self.assertRaises(UnverifiedTransaction):
+            chain.verify_transaction(TX_HASH, 'deposit', [OWNER])
+        chain.decode_log.return_value = None
+        with self.assertRaises(UnverifiedTransaction):
+            chain.verify_transaction(TX_HASH, 'deposit', [OWNER])
+        eth.get_block.return_value.hash = HexBytes('0x5678')
+        with self.assertRaises(UnverifiedTransaction):
+            chain.verify_transaction(TX_HASH, 'deposit', [OWNER])
 
     def test_record_is_durable_and_duplicate_ack_is_idempotent(self):
         self.plan.status = Mock(return_value={'index': 0})

@@ -20,7 +20,7 @@ from web3.exceptions import TransactionNotFound
 from auth.services import utcnow
 from webapp.config import ROOT, Settings
 from webapp.networks import chain_identity
-from webapp.wallets import is_key_account
+from webapp.wallets import is_key_account, wallet_call
 
 
 class ChainUnavailable(Exception):
@@ -470,7 +470,11 @@ class ChainService:
             )
         source = "token" if kind in {"approve", "faucet"} else "vault"
         contract = self.token if source == "token" else self.vault
-        if not transaction.get("to") or transaction["to"].lower() != contract.address.lower():
+        try:
+            destination, _ = wallet_call(transaction, sender)
+        except ValueError as error:
+            raise UnverifiedTransaction("Unsupported wallet execution.") from error
+        if destination != contract.address.lower():
             raise UnverifiedTransaction("Transaction target does not match the expected contract.")
         canonical = self.web3.eth.get_block(receipt["blockNumber"])
         if canonical.hash != receipt["blockHash"]:

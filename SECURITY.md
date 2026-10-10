@@ -76,3 +76,11 @@ Anvil networks can be added with wallet approval. The app rechecks the chain and
 account before continuing; rejection or an account change stops sign-in.
 Transactions never switch networks automatically. Review the address and network
 shown by your wallet when signing.
+
+On Sepolia, transaction verification also recognizes the MetaMask v1.3.0
+DelegationManager single-call wrapper. It requires an owner-signed zero-value
+transaction, one root self-delegation, standard single-call mode, and the known
+zero native-balance-change caveat. Other delegates, arbitrary hooks, batches,
+relay senders and modes are rejected. Setup still checks the exact inner payload;
+app verification retains canonical receipts, confirmation depth, expected
+contract events and signer/recipient checks.
