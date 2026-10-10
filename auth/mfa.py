@@ -110,10 +110,36 @@ class MFAService:
         )
         label = quote(f"HyperVaults:{user.get('email') or user['name']}", safe="")
         parameters = urlencode(
-            {"secret": secret, "issuer": "HyperVaults", "algorithm": "SHA1", "digits": 6, "period": 30}
+            {
+                "secret": secret,
+                "issuer": "HyperVaults",
+                "algorithm": "SHA1",
+                "digits": 6,
+                "period": 30,
+            }
         )
         uri = f"otpauth://totp/{label}?{parameters}"
         return {"secret": secret, "uri": uri}
+
+    def confirmation(self, action: str | None, user: dict) -> dict | None:
+        if not action:
+            return None
+        if not user.get("mfa"):
+            raise HTTPException(409, "Enable two-factor authentication first.")
+        return {"action": action, "expires_at": self.auth.now() + timedelta(seconds=60)}
+
+    def consume_confirmation(self, session: dict, action: str) -> None:
+        # One primary+MFA proof authorizes one named settings change, not arbitrary work.
+        claimed = self.db.sessions.update_one(
+            {
+                "_id": session["_id"],
+                "mfa_confirmation.action": action,
+                "mfa_confirmation.expires_at": {"$gt": self.auth.now()},
+            },
+            {"$unset": {"mfa_confirmation": ""}},
+        )
+        if not claimed.modified_count:
+            raise HTTPException(403, "Confirm your identity for this two-factor setting.")
 
     def enrollment(self, session: dict, user: dict, code: str) -> dict:
         row = self.db.mfa_setups.find_one(

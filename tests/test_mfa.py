@@ -232,19 +232,47 @@ class AuthenticationTests(unittest.TestCase):
             "/api/security/mfa/setup", json={}, headers={"origin": self.settings.origin}
         )
         self.assertEqual(result.status_code, 403)
-        self.assertEqual(self.post("/security/mfa", {"code": "wrong"}, "DELETE").status_code, 400)
-        replaced = self.post("/security/mfa/recovery-codes", {"code": self.next_code()})
+        self.assertEqual(self.post("/security/mfa", {}, "DELETE").status_code, 403)
+        proof = {"password": PASSWORD, "mfa_code": self.next_code(), "mfa_action": "recovery-codes"}
+        self.assertEqual(self.post("/auth/reauth", proof).status_code, 200)
+        self.assertEqual(self.post("/security/mfa", {}, "DELETE").status_code, 403)
+        replaced = self.post("/security/mfa/recovery-codes", {})
         self.assertEqual(replaced.status_code, 200, replaced.text)
-        self.assertEqual(
-            self.post("/security/mfa", {"code": self.codes[0]}, "DELETE").status_code,
-            400,
-        )
-        disabled = self.post(
-            "/security/mfa", {"code": replaced.json()["recovery_codes"][0]}, "DELETE"
-        )
+        self.assertEqual(self.post("/security/mfa/recovery-codes", {}).status_code, 403)
+        proof = {"password": PASSWORD, "mfa_code": self.codes[0], "mfa_action": "disable"}
+        self.assertEqual(self.post("/auth/reauth", proof).status_code, 400)
+        proof["mfa_code"] = replaced.json()["recovery_codes"][0]
+        self.assertEqual(self.post("/auth/reauth", proof).status_code, 200)
+        disabled = self.post("/security/mfa", {}, "DELETE")
         self.assertEqual(disabled.status_code, 200, disabled.text)
         self.assertFalse(disabled.json()["user"]["mfa_enabled"])
         self.assertEqual(self.login().json()["user"]["id"], self.user_id)
+
+    def test_mfa_setting_confirmation_expires_and_needs_full_identity(self):
+        self.enable()
+        proof = {"password": "wrong", "mfa_code": self.next_code(), "mfa_action": "disable"}
+        self.assertEqual(self.post("/auth/reauth", proof).status_code, 401)
+        self.assertEqual(self.post("/security/mfa", {}, "DELETE").status_code, 403)
+        proof["password"] = PASSWORD
+        self.assertEqual(self.post("/auth/reauth", proof).status_code, 200)
+        self.now += timedelta(seconds=61)
+        self.assertEqual(self.post("/security/mfa", {}, "DELETE").status_code, 403)
+
+    def test_pending_signin_is_bound_to_browser_and_can_be_cancelled(self):
+        self.enable()
+        self.login()
+        with TestClient(self.app, base_url=self.settings.origin) as other:
+            csrf = other.get("/api/session").json()["csrf"]
+            result = other.post(
+                "/api/auth/mfa/verify",
+                json={"code": self.codes[0]},
+                headers={"origin": self.settings.origin, "x-csrf-token": csrf},
+            )
+            self.assertEqual(result.status_code, 401)
+        self.post("/auth/logout")
+        self.csrf = self.client.get("/api/session").json()["csrf"]
+        self.assertFalse(self.client.get("/api/session").json()["mfa_required"])
+        self.assertEqual(self.post("/auth/mfa/verify", {"code": self.codes[0]}).status_code, 401)
 
     def test_factor_attempts_are_rate_limited(self):
         self.enable()

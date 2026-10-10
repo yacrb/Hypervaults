@@ -35,6 +35,7 @@ class Registration(Credentials):
 class Reauthentication(Input):
     password: str = Field(min_length=1, max_length=128)
     mfa_code: str = Field(default="", max_length=64)
+    mfa_action: Literal["disable", "recovery-codes"] | None = None
 
 
 class PasswordChange(Input):
@@ -64,6 +65,7 @@ class Proof(Input):
     message: str = Field(min_length=80, max_length=2048)
     signature: str = Field(max_length=256)
     mfa_code: str = Field(default="", max_length=64)
+    mfa_action: Literal["disable", "recovery-codes"] | None = None
 
 
 class UserChange(Input):
@@ -158,9 +160,10 @@ def reauthenticate(body: Reauthentication, request: Request, user=Depends(curren
     if not service.verify_password(body.password, user):
         raise HTTPException(401, "Authentication failed.")
     service.mfa.verify(user, body.mfa_code)
+    confirmation = service.mfa.confirmation(body.mfa_action, user)
     service.db.sessions.update_one(
         {"_id": session["_id"]},
-        {"$set": {"authenticated_at": service.now(), "method": "password"}},
+        {"$set": {"authenticated_at": service.now(), "method": "password", "mfa_confirmation": confirmation}},
     )
     service.audit(user["_id"], "recent_password_authentication")
     return {"ok": True}
@@ -321,6 +324,8 @@ def wallet_verify(body: Proof, request: Request, response: Response):
     if candidate and not request.app.state.chain.is_eoa(candidate["address"]):
         raise HTTPException(400, "Only EOA wallet signatures are supported.")
     proof = service.consume_challenge(session, user, body.id, body.message, body.signature)
+    if body.mfa_action and proof["action"] != "reauth":
+        raise HTTPException(400, "Account confirmation requires reauthentication.")
     address = proof["address"]
     if proof["action"] == "link":
         service.recent(session)
@@ -352,9 +357,10 @@ def wallet_verify(body: Proof, request: Request, response: Response):
             raise HTTPException(403, "Linked wallet ownership required.")
         service.throttle(request, "reauthentication", user["_id"], limit=5)
         service.mfa.verify(user, body.mfa_code)
+        confirmation = service.mfa.confirmation(body.mfa_action, user)
         service.db.sessions.update_one(
             {"_id": session["_id"]},
-            {"$set": {"authenticated_at": service.now(), "method": "wallet"}},
+            {"$set": {"authenticated_at": service.now(), "method": "wallet", "mfa_confirmation": confirmation}},
         )
         service.audit(user["_id"], "recent_wallet_authentication", address=address)
         return signed_in_payload(user, session)

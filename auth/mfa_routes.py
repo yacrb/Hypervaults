@@ -77,11 +77,11 @@ def enable(body: Factor, request: Request, response: Response, user=Depends(curr
 
 
 @router.post("/security/mfa/recovery-codes")
-def replace_codes(body: Factor, request: Request, response: Response, user=Depends(current_user)):
-    service, _ = account_change(request, user)
+def replace_codes(body: Input, request: Request, response: Response, user=Depends(current_user)):
+    service, session = account_change(request, user)
     if not user.get("mfa"):
         raise HTTPException(409, "Enable two-factor authentication first.")
-    user = service.mfa.verify(user, body.code)
+    service.mfa.consume_confirmation(session, "recovery-codes")
     codes, hashes = recovery_codes()
     result = security_change(
         service,
@@ -95,9 +95,9 @@ def replace_codes(body: Factor, request: Request, response: Response, user=Depen
 
 
 @router.delete("/security/mfa")
-def disable(body: Factor, request: Request, response: Response, user=Depends(current_user)):
-    service, _ = account_change(request, user)
+def disable(body: Input, request: Request, response: Response, user=Depends(current_user)):
+    service, session = account_change(request, user)
     if not user.get("mfa"):
         raise HTTPException(409, "Two-factor authentication is already off.")
-    service.mfa.verify(user, body.code)
+    service.mfa.consume_confirmation(session, "disable")
     return security_change(service, request, response, user, {"mfa": {}}, "mfa_disabled")
