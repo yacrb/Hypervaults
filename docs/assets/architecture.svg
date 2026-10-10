@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760" role="img" aria-labelledby="title description">
   <title id="title">HyperVaults architecture</title>
-  <desc id="description">The browser talks to FastAPI over REST and asks an injected wallet to sign messages and transactions. FastAPI verifies authentication, encrypts private notes and stores account data in MongoDB. The wallet sends transactions to Anvil. FastAPI only reads the chain and verifies receipts. Anvil runs the HVT token and the vault with its funded reward reserve.</desc>
+  <desc id="description">Separate sign-in, account and dashboard screens talk to FastAPI over REST. FastAPI verifies passwords, wallet proofs and optional MFA, encrypts notes and authenticator secrets, and stores account data in MongoDB. Browser wallets keep signing keys and send approved transactions to Sepolia or local Anvil. FastAPI reads the selected chain and verifies receipts. The HVT token and vault contracts hold the funded reward reserve.</desc>
   <defs>
     <linearGradient id="canvas" x2="1" y2="1"><stop stop-color="#10121b"/><stop offset="1" stop-color="#0c0e14"/></linearGradient>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="m1 1 7 4-7 4" fill="none" stroke="#b8a2ff" stroke-width="1.6"/></marker>
@@ -27,7 +27,7 @@
   <text x="121" y="75" fill="#f3f2fa" font-size="34" font-weight="650" letter-spacing="-1">A small stack. Clear responsibilities.</text>
   <rect x="1193" y="48" width="193" height="36" rx="18" fill="#172720" stroke="#284437"/>
   <circle cx="1214" cy="66" r="4" fill="#70d4b1"/>
-  <text x="1228" y="72" fill="#9be0c7" font-size="17">Local test network</text>
+  <text x="1228" y="72" fill="#9be0c7" font-size="17">Sepolia &amp; Anvil</text>
   <text x="54" y="148" class="eyebrow">USER DEVICE</text>
   <text x="555" y="148" class="eyebrow">LOCAL APPLICATION</text>
   <text x="1056" y="148" class="eyebrow">DATABASE</text>
@@ -36,19 +36,19 @@
   <use href="#browser" x="91" y="215" width="24" height="24" class="icon"/>
   <text x="144" y="235" class="heading">Browser interface</text>
   <text x="80" y="284" class="body">HTML · CSS · JavaScript</text>
-  <text x="80" y="315" class="body">Dashboard &amp; wallet requests</text>
+  <text x="80" y="315" class="body">Auth &amp; account · Dashboard</text>
   <rect x="555" y="176" width="342" height="172" rx="20" class="card"/>
   <rect x="581" y="204" width="46" height="46" rx="13" fill="#282238"/>
   <use href="#server" x="592" y="215" width="24" height="24" class="icon"/>
   <text x="645" y="235" class="heading">FastAPI</text>
-  <text x="581" y="284" class="body">Argon2id + SIWE sessions</text>
-  <text x="581" y="315" class="body">AES-256-GCM private notes</text>
+  <text x="581" y="284" class="body">Argon2id · SIWE · MFA</text>
+  <text x="581" y="315" class="body">AES-GCM notes &amp; MFA secrets</text>
   <rect x="1056" y="176" width="330" height="172" rx="20" class="card"/>
   <rect x="1082" y="204" width="46" height="46" rx="13" fill="#1d302a"/>
   <use href="#database" x="1093" y="215" width="24" height="24" class="icon" style="stroke:#70d4b1"/>
   <text x="1146" y="235" class="heading">MongoDB</text>
-  <text x="1082" y="284" class="body">Users · sessions · chain index</text>
-  <text x="1082" y="315" class="body">Encrypted note ciphertext</text>
+  <text x="1082" y="284" class="body">Users · sessions · MFA · index</text>
+  <text x="1082" y="315" class="body">Ciphertext &amp; recovery hashes</text>
   <path d="M402 262h146" class="line" marker-start="url(#arrow)"/>
   <text x="475" y="244" fill="#c4b0ff" font-size="17" text-anchor="middle">REST + cookies</text>
   <path d="M903 262h146" class="line" marker-start="url(#arrow)"/>
@@ -67,13 +67,13 @@
   <text x="475" y="532" fill="#c4b0ff" font-size="17" text-anchor="middle">Sign &amp; send</text>
   <rect x="555" y="420" width="831" height="224" rx="20" fill="#131d1b" stroke="#2d443b" stroke-width="1.3"/>
   <circle cx="585" cy="452" r="5" fill="#70d4b1"/>
-  <text x="603" y="460" fill="#a8e8d0" font-size="22" font-weight="600">Anvil · chain 31337</text>
+  <text x="603" y="460" fill="#a8e8d0" font-size="22" font-weight="600">Sepolia 11155111 / Anvil 31337</text>
   <text x="1362" y="458" fill="#769e8f" font-size="17" text-anchor="end">Solidity contracts</text>
   <rect x="579" y="483" width="342" height="137" rx="14" class="card"/>
   <use href="#token" x="600" y="504" width="26" height="26" class="icon"/>
   <text x="640" y="526" class="heading">HVT token</text>
   <text x="600" y="564" class="body">ERC-20 test token</text>
-  <text x="600" y="596" class="body">Local faucet &amp; approvals</text>
+  <text x="600" y="596" class="body">Faucet &amp; exact approvals</text>
   <rect x="945" y="483" width="417" height="137" rx="14" class="card"/>
   <use href="#vault" x="966" y="504" width="26" height="26" class="icon"/>
   <text x="1006" y="526" class="heading">Vault contract</text>

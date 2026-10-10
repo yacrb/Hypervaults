@@ -66,6 +66,11 @@ Connect the linked wallet, enter an email and matching passwords, then save.
 A wallet ownership proof authorizes setup; both sign-in methods use the same
 account. Existing email accounts instead enter their current password to change it.
 
+**Security** opens a separate account page for wallets, passwords, MFA and sessions.
+Enable **Two-factor authentication** with an authenticator and save the recovery
+codes. Both email and wallet sign-in then require a second step. See the
+[authentication guide](docs/AUTHENTICATION.md) for setup, architecture and security checks.
+
 Wallet connection requests the selected network: **Anvil (31337)** or **Sepolia (11155111)**.
 Anvil can be added when missing; enable Sepolia in your wallet's test networks if needed.
 Approve the network request and sign-in message in your wallet. Signing in costs
@@ -151,11 +156,13 @@ smartcontract/  Vault/token source and pinned Foundry dependencies
 docs/assets/    Two editable diagrams and five app screenshots
 docs/SEPOLIA.md Public testnet deployment and restart guide
 scripts/        Browser-wallet Sepolia setup helper
-tests/          Network and deployment regression checks
+tests/          Authentication, UI, network and deployment checks
 manage.py       Local startup and development controls
 ```
 
-Run the network/deployment checks with `uv run python -m unittest discover -s tests -v`.
+Run the checks with `uv run python -m unittest discover -s tests -v`.
+The [authentication guide](docs/AUTHENTICATION.md#reproducible-checks) includes isolated
+MongoDB/API and browser checks.
 Wallet keys, credentials, caches and generated build output are excluded from Git
 and the app image. A live Sepolia deployment requires wallet-approved transactions;
 setup code and passing regression checks alone do not demonstrate a public deployment.

@@ -12,6 +12,15 @@ deployment requires browser-wallet approval and verified transaction receipts.
   SIWE proofs are short-lived, browser-bound, single-use and verified on the server.
 - Passwords use Argon2id. Sessions use hashed opaque identifiers, HttpOnly cookies,
   CSRF protection, explicit trusted origins and current account/role checks.
+- Optional authenticator MFA protects email and linked-wallet login, password
+  recovery and reauthentication. Pending sign-in sessions remain anonymous.
+  Secrets are encrypted with account/purpose binding, and authenticator steps and
+  hashed recovery codes are atomically single-use. Disabling MFA or replacing
+  recovery codes requires a short-lived, action-bound identity confirmation.
+  MFA changes revoke other sessions. See the
+  [authentication guide and test cases](docs/AUTHENTICATION.md).
+- Sign-in and account settings use separate templates/modules from the dashboard.
+  MFA protects website access; it does not restrict a wallet's direct on-chain actions.
 - Sign-in waits for the session/CSRF bootstrap and permits one email or wallet
   attempt at a time. Forms default to POST if scripts fail, keeping credentials
   out of navigation URLs. Email access does not depend on wallet configuration.
