@@ -6,8 +6,8 @@
   <meta name="color-scheme" content="dark">
   <title>HyperVaults · Overview</title>
   <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/style.css?v=2">
-  <script type="module" src="/static/js/app.js?v=3"></script>
+  <link rel="stylesheet" href="/static/style.css?v=4">
+  <script type="module" src="/static/js/app.js?v=4"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,7 +22,7 @@
         <a href="/security" data-nav="security"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#shield"></use></svg><span>Security</span></a>
         <a href="/admin" data-nav="admin" id="admin-nav" hidden><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#settings"></use></svg><span>Admin</span></a>
       </nav>
-      <div class="sidebar-bottom"><span class="environment"><span class="status-dot"></span>Local testnet</span><div class="sidebar-account"><span class="avatar" id="avatar" aria-hidden="true">U</span><div><strong id="account-name">Loading…</strong><small id="account-role">Member</small></div><button class="icon-button" id="logout" aria-label="Sign out" title="Sign out"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#logout"></use></svg></button></div></div>
+      <div class="sidebar-bottom"><span class="environment"><span class="status-dot"></span>Anvil</span><div class="sidebar-account"><span class="avatar" id="avatar" aria-hidden="true">U</span><div><strong id="account-name">Loading…</strong><small id="account-role">Member</small></div><button class="icon-button" id="logout" aria-label="Sign out" title="Sign out"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#logout"></use></svg></button></div></div>
     </aside>
     <div class="workspace">
       <header class="topbar"><span class="breadcrumb" id="breadcrumb">Overview</span><div class="topbar-actions"><span class="network-pill" id="network-label"><span class="status-dot"></span>Connecting</span><button id="connect-wallet" class="button button-secondary"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#wallet"></use></svg><span id="wallet-button-label">Connect wallet</span></button></div></header>
@@ -73,12 +73,12 @@
           <section id="admin-accounts" role="tabpanel" aria-labelledby="tab-accounts" hidden><div class="panel"><div class="panel-heading"><h2>Accounts</h2><span id="user-directory-count" class="badge badge-muted">Loading</span></div><div class="panel-body search-bar"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#search"></use></svg><input id="user-search" type="search" aria-label="Search loaded accounts" placeholder="Search by name or email"></div><div id="user-list" class="item-list"></div><p id="user-search-empty" class="empty" hidden>No matching accounts.</p></div><p class="form-hint muted">Account roles control website access. Contract ownership is separate.</p></section>
           <section id="admin-activity" role="tabpanel" aria-labelledby="tab-activity" hidden><div class="panel"><div class="panel-heading"><h2>Administration activity</h2></div><div id="admin-audit" class="item-list"></div></div></section>
         </section>
-        <footer class="page-footer"><div id="live-status" class="status-strip" role="status" aria-live="polite"><span class="status-dot"></span><span id="freshness">Loading confirmed data…</span><span id="connected-address" class="sr-only">Wallet disconnected</span></div><span>HVT test tokens · Not audited</span></footer>
+        <footer class="page-footer"><div id="live-status" class="status-strip" role="status" aria-live="polite"><span class="status-dot"></span><span id="freshness">Loading confirmed data…</span><span id="connected-address" class="sr-only">Wallet disconnected</span></div></footer>
       </main>
     </div>
   </div>
   <dialog id="transaction-dialog" aria-labelledby="transaction-title"><form method="dialog"><button class="dialog-close icon-button" aria-label="Close preview"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#close"></use></svg></button></form><span class="dialog-symbol"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#wallet"></use></svg></span><h2 id="transaction-title">Review transaction</h2><div id="transaction-preview" class="detail-list"></div><p id="transaction-warning" class="form-hint muted"></p><p id="transaction-status" role="status" aria-live="polite"></p><div class="form-actions"><button id="confirm-transaction" class="button">Continue in wallet</button><button id="cancel-transaction" class="button button-secondary">Cancel</button></div></dialog>
-  <dialog id="note-dialog" aria-labelledby="note-title"><form method="dialog"><button class="dialog-close icon-button" aria-label="Close note"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#close"></use></svg></button></form><h2 id="note-title">Private note</h2><p class="form-hint muted">Encrypted on the server. Not end-to-end encrypted or stored on-chain.</p><form id="note-form" class="form-stack"><label>Note<textarea name="note" rows="5" maxlength="2000" required></textarea></label><button class="button" type="submit">Save encrypted note</button><p class="form-message" role="status" aria-live="polite"></p></form></dialog>
+  <dialog id="note-dialog" aria-labelledby="note-title"><form method="dialog"><button class="dialog-close icon-button" aria-label="Close note"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#close"></use></svg></button></form><h2 id="note-title">Private note</h2><p class="form-hint muted">Encrypted on the server. Not end-to-end encrypted or stored on-chain.</p><form id="note-form" class="form-stack"><label>Note<textarea name="note" rows="5" maxlength="2000" required></textarea></label><button class="button" type="submit">Save note</button><p class="form-message" role="status" aria-live="polite"></p></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

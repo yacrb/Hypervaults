@@ -1,5 +1,5 @@
 import {api, boot, $, element} from './api.js?v=2';
-import {Wallet, walletError} from './wallet.js?v=4';
+import {Wallet, walletError} from './wallet.js?v=5';
 
 const view = location.pathname.slice(1), form = $('auth-form'), message = $('auth-message');
 let resetToken = null, wallet = null;
@@ -47,7 +47,7 @@ try {
     wallet = new Wallet(config);
     wallet.addEventListener('status', event => { message.textContent = event.detail; message.classList.remove('is-error'); });
     $('siwe-login').disabled = false;
-    document.querySelector('.environment').lastChild.textContent = config.chain_id === 31337 ? 'Local testnet' : 'Sepolia testnet';
+    document.querySelector('.environment').lastChild.textContent = config.chain_id === 31337 ? 'Anvil' : 'Sepolia';
   } catch (error) { $('siwe-login').disabled = true; $('siwe-login').title = error.message; }
 } catch (error) { errorMessage(error); $('auth-submit').disabled = true; $('siwe-login').disabled = true; }
 

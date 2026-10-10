@@ -1,5 +1,5 @@
 import {api, boot, $, element, empty, emptyState, icon, disclosure, button, detail, shortAddress, dateTime, dateString} from './api.js?v=2';
-import {Wallet, amount, tokens, rate, walletError} from './wallet.js?v=4';
+import {Wallet, amount, tokens, rate, walletError} from './wallet.js?v=5';
 
 const view = location.pathname.slice(1) || 'overview';
 const screen = {
@@ -109,7 +109,7 @@ function preview(title, details, warning, callback) {
   const lines = [
     ['Network', `${config.network} · chain ${config.chain_id}`],
     ['Wallet signer', wallet.address || 'Connect a linked wallet'],
-    ['Vault contract', config.vault_address], ['Test token', `${config.token_address} · HVT`], ...details,
+    ['Vault contract', config.vault_address], ['HVT contract', `${config.token_address} · HVT`], ...details,
   ];
   $('transaction-preview').replaceChildren(...lines.map(([label, value]) => detail(label, value)));
   $('transaction-warning').textContent = warning;
@@ -179,7 +179,7 @@ function renderOverview() {
   $('maturity-total').textContent = tokens(snapshot.totals.at_maturity);
   $('overview-positions').replaceChildren();
   const active = snapshot.positions.filter(position => !position.settled);
-  if (!active.length) emptyState($('overview-positions'), 'Your next position starts here', user.wallets.length ? 'Choose a vault and lock your test tokens.' : 'Link a wallet to view your positions.', user.wallets.length ? '/vaults' : '/security', user.wallets.length ? 'Explore vaults ↗' : 'Link a wallet ↗');
+  if (!active.length) emptyState($('overview-positions'), 'Your next position starts here', user.wallets.length ? 'Choose a vault to get started.' : 'Link a wallet to view your positions.', user.wallets.length ? '/vaults' : '/security', user.wallets.length ? 'Explore vaults ↗' : 'Link a wallet ↗');
   for (const position of active.slice(0, 5)) {
     $('overview-positions').append(item(`Position #${position.id} · ${position.duration / 86400}-day lock`, `${positionState(position)} · maturity ${dateTime(position.matures_at)}`, `${tokens(position.principal)} HVT`));
   }
@@ -230,14 +230,14 @@ function renderOffers() {
     });
     const emblem = element('span', 'offer-emblem'); emblem.append(icon('vault'));
     const funding = element('dl', 'detail-list'); funding.append(detail('Shared reward reserve', `${tokens(snapshot.reserves.uncommitted, true)} HVT`));
-    card.append(emblem, top, rewardRate, details, disclosure('Funding details', funding), form, element('p', 'offer-foot', 'No early withdrawal. Review before signing.')); $('offers').append(card);
+    card.append(emblem, top, rewardRate, details, disclosure('Funding details', funding), form, element('p', 'offer-foot', 'No early withdrawal.')); $('offers').append(card);
   }
   const faucet = element('div', 'faucet-panel'), copy = element('div'), text = element('div');
-  text.append(element('h3', '', 'Try it with test tokens'), element('p', '', 'Claim 1,000 HVT once per chain hour. No monetary value.'));
+  text.append(element('h3', '', 'Get HVT'), element('p', '', 'Claim 1,000 HVT every hour.'));
   copy.append(icon('spark'), text); faucet.append(copy);
-  faucet.append(button('Get test tokens', action(async () => {
+  faucet.append(button('Get HVT', action(async () => {
     await wallet.context(user);
-    preview('Claim local test tokens', [['Faucet amount', '1,000 HVT'], ['Token value', 'Unpriced test token']], 'Your wallet signs the token faucet transaction. Obtain test ETH for gas using the local CLI if needed.', async () => {
+    preview('Get HVT', [['Amount', '1,000 HVT']], 'ETH is required for gas.', async () => {
       const context = await wallet.context(user); await send(context, 'faucet', () => context.token.faucet());
     });
   })));
@@ -498,8 +498,8 @@ async function refresh() {
       wallet.addEventListener('change', event => walletState(event.detail));
       wallet.addEventListener('status', event => walletState(event.detail));
       await wallet.resume();
-      $('network-label').replaceChildren(element('span', 'status-dot'), document.createTextNode(config.chain_id === 31337 ? 'Anvil · 31337' : 'Sepolia testnet'));
-      document.querySelector('.environment').lastChild.textContent = config.chain_id === 31337 ? 'Local testnet' : 'Sepolia testnet';
+      $('network-label').replaceChildren(element('span', 'status-dot'), document.createTextNode(config.chain_id === 31337 ? 'Anvil' : 'Sepolia'));
+      document.querySelector('.environment').lastChild.textContent = config.chain_id === 31337 ? 'Anvil' : 'Sepolia';
       walletState();
     }
     if (view === 'security') {

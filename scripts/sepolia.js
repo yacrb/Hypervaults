@@ -2,7 +2,7 @@ import {Wallet, walletError} from '/static/js/wallet.js';
 
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name="setup-token"]').content;
-const wallet = new Wallet({chain_id: 11155111, network: 'Sepolia testnet', genesis_hash: '0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9'});
+const wallet = new Wallet({chain_id: 11155111, network: 'Sepolia', genesis_hash: '0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9'});
 let current = null, busy = false, timer = null;
 const journalKey = 'hv_sepolia_pending';
 
@@ -29,12 +29,12 @@ async function refresh() {
       link.href = `https://sepolia.etherscan.io/tx/${step.hash}`; link.target = '_blank'; link.rel = 'noopener noreferrer'; item.append(link); return item;
     }));
     if (current.pending) {
-      $('status').textContent = `${current.label}: waiting for confirmations (${Math.min(current.confirmations, 6)}/6).`;
+      $('status').textContent = `${current.label} · ${Math.min(current.confirmations, 6)}/6 confirmations`;
       $('cost').textContent = ''; timer = setTimeout(refresh, 12000); return;
     }
     $('owner').textContent = current.owner;
-    $('status').textContent = current.ready ? 'Contracts and funding verified. Activate Sepolia to finish.' : `Step ${current.index + 1} of 7 · ${current.label}`;
-    $('cost').textContent = current.ready ? '' : 'Review the network fee in your wallet before approving. Your wallet may choose a different fee than the RPC estimate.';
+    $('status').textContent = current.ready ? 'Ready to activate' : `Step ${current.index + 1} of 7 · ${current.label}`;
+    $('cost').textContent = current.ready ? '' : 'Review fees in your wallet.';
     $('continue').textContent = current.ready ? 'Activate Sepolia' : wallet.address ? current.label : 'Connect wallet';
     $('continue').disabled = busy;
   } catch (error) { showError(error); }
@@ -48,7 +48,7 @@ $('continue').addEventListener('click', async () => {
   try {
     if (current.ready) {
       await request('/activate', {});
-      $('status').textContent = 'Sepolia is verified. The application is starting; open it when setup reports ready.';
+      $('status').textContent = 'Sepolia activated. Starting HyperVaults…';
       $('open-app').hidden = false; $('continue').hidden = true; return;
     }
     if (!wallet.address) {

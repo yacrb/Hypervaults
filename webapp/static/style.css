@@ -240,7 +240,6 @@ dialog h2 { font-size: 22px; letter-spacing: -.6px; padding-right: 20px; margin-
 .wallet-logos { display: inline-flex; align-items: center; }
 .wallet-logos img { width: 25px; height: 25px; border: 3px solid #25212e; border-radius: 50%; background: #25212e; object-fit: contain; box-sizing: content-box; }
 .wallet-logos img + img { margin-left: -7px; }
-.wallet-auth-note { font-size: 10px; color: var(--muted); text-align: center; margin: 10px 0 0; }
 .divider { display: flex; align-items: center; color: var(--muted); gap: 12px; font-size: 10px; margin: 25px 0; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .password-field { display: flex; position: relative; }
@@ -251,9 +250,7 @@ dialog h2 { font-size: 22px; letter-spacing: -.6px; padding-right: 20px; margin-
 .auth-card #auth-submit { min-height: 45px; }
 .auth-links { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--line); }
 .auth-links .text-link { font-size: 11px; }
-.auth-footer { display: flex; justify-content: space-between; color: var(--muted); padding: 22px 5vw; font-size: 10px; }
-.wallet-picker h2 { margin-bottom: 8px; }
-.wallet-picker > .muted { font-size: 12px; margin-bottom: 24px; }
+.wallet-picker h2 { margin-bottom: 24px; }
 .wallet-options { display: grid; gap: 10px; }
 .wallet-option { display: flex; align-items: center; gap: 13px; padding: 15px; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; background: #1b1d25; text-align: left; width: 100%; }
 .wallet-option:hover { border-color: #6e5b8b; background: var(--accent-soft); }
@@ -262,7 +259,6 @@ dialog h2 { font-size: 22px; letter-spacing: -.6px; padding-right: 20px; margin-
 .wallet-option strong { display: block; font-size: 13px; font-weight: 550; }
 .wallet-option small { display: block; font-size: 10px; color: var(--muted); margin-top: 3px; }
 .wallet-option > .option-arrow { width: 16px; height: 16px; color: var(--muted); }
-.wallet-picker-note { font-size: 10px; margin-top: 20px; margin-bottom: 0; color: var(--muted); }
 @media (min-width: 1500px) {
   main#main:not(.auth-layout) { padding-top: 48px; }
 }
@@ -350,7 +346,6 @@ dialog h2 { font-size: 22px; letter-spacing: -.6px; padding-right: 20px; margin-
   .auth-intro { display: none; }
   .auth-card { padding: 30px 26px; border-radius: 22px; }
   .auth-card-heading { margin-bottom: 24px; }
-  .auth-footer { gap: 10px; padding: 20px; font-size: 9px; flex-wrap: wrap; }
   .auth-header .environment { font-size: 9px; padding: 5px 8px; }
   .auth-header .brand { font-size: 18px; }
 }
@@ -375,6 +370,5 @@ dialog h2 { font-size: 22px; letter-spacing: -.6px; padding-right: 20px; margin-
   .auth-card input { padding-top: 10px; padding-bottom: 10px; }
   .divider { margin-top: 20px; margin-bottom: 20px; }
   .auth-links { margin-top: 20px; padding-top: 18px; }
-  .auth-footer { padding-top: 16px; padding-bottom: 16px; }
   .vault-art img { max-width: 310px; }
 }

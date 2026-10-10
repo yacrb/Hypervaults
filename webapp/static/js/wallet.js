@@ -25,7 +25,7 @@ function rpcErrorCode(error) {
 export function walletError(error) {
   if (rpcErrorCode(error) === -32002 || error.code === 'WALLET_REQUEST_PENDING') return 'A wallet request is already open. Complete or cancel it in your wallet, then try again.';
   if (rpcErrorCode(error) === 4001 || error.code === 'ACTION_REJECTED') return 'Transaction or signature rejected in the wallet. Nothing further was sent.';
-  if (error.code === 'INSUFFICIENT_FUNDS') return 'Insufficient test ETH for gas. Add test ETH on the selected network.';
+  if (error.code === 'INSUFFICIENT_FUNDS') return 'Not enough ETH for gas on this network.';
   if (error.code === 'CALL_EXCEPTION') return 'The contract rejected this transaction. Refresh the terms, funding and maturity before retrying.';
   if (error.code === 'TIMEOUT') return 'Transaction is still pending. Its hash has been retained in this tab for verification.';
   if (error.code === 'TRANSACTION_REPLACED') return 'The wallet replaced or cancelled this transaction. Refresh and inspect its receipt before retrying.';
@@ -69,7 +69,7 @@ function selectWallet() {
   close.setAttribute('aria-label', 'Close wallet picker'); close.append(icon('close'));
   const title = element('h2', '', 'Choose your wallet'); title.id = 'wallet-picker-title';
   const options = element('div', 'wallet-options');
-  dialog.append(close, title, element('p', 'muted', 'Connect a browser wallet to continue.'), options, element('p', 'wallet-picker-note', 'Use a test wallet. Approve requests in your wallet.'));
+  dialog.append(close, title, options);
   document.body.append(dialog);
   return new Promise((resolve, reject) => {
     let selected = null;
@@ -81,7 +81,8 @@ function selectWallet() {
         const brand = brands[entry.id], row = element(entry.provider ? 'button' : 'a', 'wallet-option');
         if (brand) { const logo = element('img'); logo.src = `/static/wallets/${brand.logo}.svg`; logo.alt = ''; row.append(logo); }
         else row.append(icon('wallet'));
-        const text = element('span'); text.append(element('strong', '', entry.name), element('small', '', entry.provider ? 'Detected in this browser' : 'Get browser extension'));
+        const text = element('span'); text.append(element('strong', '', entry.name));
+        if (!entry.provider) text.append(element('small', '', 'Install extension'));
         const arrow = icon(entry.provider ? 'arrow-right' : 'arrow-up-right'); arrow.classList.add('option-arrow'); row.append(text, arrow);
         if (entry.provider) {
           row.type = 'button'; row.addEventListener('click', () => { selected = entry; dialog.close(); });
