@@ -32,7 +32,7 @@ export class Wallet extends EventTarget {
 """.replace("ADDRESS", ADDRESS)
 
 
-async def fixture(browser, has_password=True):
+async def fixture(browser, has_password=True, config_failed=False):
     context = await browser.new_context(viewport={"width": 375, "height": 812})
     user = {"id": "fixture", "name": "Member", "role": "user", "email": "fixture@example.com" if has_password else None,
             "has_password": has_password, "mfa_enabled": False, "recovery_codes_remaining": 0, "wallets": [] if has_password else [ADDRESS]}
@@ -51,6 +51,8 @@ async def fixture(browser, has_password=True):
             mime = "text/javascript" if source.suffix == ".js" else "text/css" if source.suffix == ".css" else "image/svg+xml"
             return await route.fulfill(path=source, content_type=mime)
         requests.append((path, request.post_data_json if request.post_data else None))
+        if path == "/api/config" and config_failed:
+            return await route.fulfill(status=503, json={"detail": "Wallet configuration unavailable."})
         payload = {
             "/api/session": {"user": user, "csrf": "fixture-csrf"},
             "/api/config": {"chain_id": 11155111, "network": "Sepolia"},
@@ -191,6 +193,20 @@ async def main():
         proof = [body for path, body in requests if path == "/api/auth/reauth"][-1]
         assert proof["mfa_action"] == "disable"
         assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        for width in (375, 320):
+            await page.set_viewport_size({"width": width, "height": 812})
+            back = await page.locator('.account-header a[aria-label="Back to dashboard"]').bounding_box()
+            logout = await page.locator("#logout").bounding_box()
+            assert back["x"] + back["width"] <= logout["x"]
+        await context.close()
+
+        context, page, requests = await fixture(browser, config_failed=True)
+        await page.goto(BASE + "/security")
+        await page.locator("#connected-address").filter(has_text="unavailable").wait_for()
+        assert await page.locator("#connect-wallet").is_disabled()
+        assert await page.locator("#save-password").is_enabled()
+        assert await page.locator("#mfa-start").is_enabled()
+        assert not any(path == "/api/snapshot" for path, _ in requests)
         await context.close()
         await browser.close()
         print("PASS: separate connect/link, proof cancellation/retry, duplicate guards, wallet-authorized email setup, password confirmation, separate account layout and MFA enrollment/cancellation.")

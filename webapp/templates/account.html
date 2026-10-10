@@ -12,7 +12,7 @@
 </head>
 <body class="account-body">
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="account-header"><a class="brand" href="/overview"><img src="/static/favicon.svg?v=2" alt="" width="32" height="32">HyperVaults</a><div class="form-actions"><a class="text-link" href="/overview">Back to dashboard</a><button class="button button-secondary button-small" id="logout" type="button">Sign out</button></div></header>
+  <header class="account-header"><a class="brand" href="/overview"><img src="/static/favicon.svg?v=2" alt="" width="32" height="32">HyperVaults</a><div class="form-actions"><a class="text-link" href="/overview" aria-label="Back to dashboard" title="Back to dashboard"><span class="account-back-label">Back to dashboard</span><span class="account-back-icon" aria-hidden="true">←</span></a><button class="button button-secondary button-small" id="logout" type="button">Sign out</button></div></header>
   <main id="main" tabindex="-1">
     <div class="page-heading"><div><h1>Account security</h1><p class="subheading" id="account-identity">Loading account…</p></div><button class="button button-secondary button-small" id="verify-account" type="button" disabled>Verify identity</button></div>
     <div id="error-banner" class="notice notice-error" role="alert" hidden></div>
@@ -38,7 +38,7 @@
     <div class="account-wallet-bar"><span class="form-hint muted wrap-address" id="connected-address">Wallet disconnected</span><button id="connect-wallet" class="button button-secondary button-small" type="button" disabled><span id="wallet-button-label">Connect wallet</span></button></div>
         <section id="view-security" class="view" aria-label="Account security">
           <div class="two-column">
-            <section class="panel"><div class="panel-heading"><h2>Linked wallets</h2><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#wallet"></use></svg></div><div id="wallet-list" class="item-list"></div><div class="panel-body"><div class="form-actions"><button class="button" id="link-wallet" type="button" disabled>Connect wallet</button></div><p class="form-hint muted">Link with a signature. Your email session stays signed in.</p></div></section>
+            <section class="panel"><div class="panel-heading"><h2>Linked wallets</h2><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#wallet"></use></svg></div><div id="wallet-list" class="item-list"></div><div class="panel-body"><div class="form-actions"><button class="button" id="link-wallet" type="button" disabled>Connect wallet</button></div><p class="form-hint muted">Link with an ownership signature.</p></div></section>
             <section class="panel"><div class="panel-heading"><h2 id="password-title">Email & password</h2><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#lock"></use></svg></div><form id="password-form" class="panel-body form-stack" method="post">
               <p id="password-email" class="form-hint muted wrap-address" hidden></p>
               <label id="password-email-label" hidden>Email<input name="email" type="email" autocomplete="username" placeholder="you@example.com" maxlength="254"></label>

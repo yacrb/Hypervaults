@@ -45,7 +45,7 @@ function walletSetupState() {
   for (const id of ['mfa-start', 'mfa-replace-codes', 'mfa-disable', 'mfa-enable', 'mfa-cancel-setup', 'verify-account', 'revoke-others', 'logout']) $(id).disabled = !user || busy;
   $('connect-wallet').disabled = !wallet || busy;
   $('link-wallet').textContent = linkingWallet ? 'Waiting for signature…' : wallet?.connecting ? 'Connecting…' : wallet?.address ? 'Link wallet' : 'Connect wallet';
-  $('link-wallet').disabled = !wallet || busy; $('link-wallet').hidden = linked;
+  $('link-wallet').disabled = !wallet || busy; $('link-wallet').hidden = !wallet?.address || linked;
   passwordFormState();
 }
 function walletState(message = '') {

@@ -1,7 +1,11 @@
 /* Account pages use the shared controls, without the vault workspace layout. */
 .account-body { min-height: 100dvh; background: radial-gradient(ellipse at 50% 0, #221c3033, transparent 60%), var(--bg); }
 .account-header { max-width: 1120px; padding: 28px 36px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.account-header .form-actions { margin-top: 0; }
+.account-back-icon { display: none; }
+.account-body #logout { position: static; }
 .account-body main#main { width: 100%; max-width: 1120px; padding-top: 24px; }
+.account-body .two-column { align-items: start; }
 .account-body .panel { margin-bottom: 24px; }
 .account-body .two-column > .panel { margin-bottom: 0; }
 .account-wallet-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 28px 0 18px; }
@@ -18,6 +22,8 @@
 @media (max-width: 700px) {
   .account-header { padding: 22px 20px; flex-wrap: wrap; gap: 18px; }
   .account-header .form-actions { margin-top: 0; }
+  .account-back-label { display: none; }
+  .account-back-icon { display: inline; font-size: 24px; }
   .account-body main#main { padding: 22px 20px 44px; }
   .account-body .page-heading { flex-wrap: wrap; gap: 18px; }
   .account-wallet-bar { align-items: flex-start; flex-direction: column; gap: 12px; }
