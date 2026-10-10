@@ -23,6 +23,7 @@ if (['register', 'reset'].includes(view)) {
 }
 $('auth-submit').textContent = {login: 'Sign in', register: 'Create account', recover: 'Send recovery link', reset: 'Reset password'}[view] || 'Sign in';
 $('recovery-link').hidden = view !== 'login';
+$('auth-description').hidden = view === 'login';
 if (view !== 'login') {
   $('auth-links').replaceChildren(element('a', 'text-link', 'Back to sign in'));
   $('auth-links').firstChild.href = '/login';
@@ -55,6 +56,7 @@ form.addEventListener('submit', async event => {
   const data = Object.fromEntries(new FormData(form));
   if (['register', 'reset'].includes(view) && data.password !== data.confirm) { errorMessage(new Error('Passwords do not match.')); return; }
   $('auth-submit').disabled = true;
+  $('auth-submit').setAttribute('aria-busy', 'true');
   try {
     if (view === 'register') await api('/auth/register', {method: 'POST', body: {email: data.email, password: data.password, name: data.name}});
     else if (view === 'recover') {
@@ -67,7 +69,7 @@ form.addEventListener('submit', async event => {
     } else await api('/auth/login', {method: 'POST', body: {email: data.email, password: data.password}});
     form.reset(); location.assign('/overview');
   } catch (error) { errorMessage(error); }
-  finally { $('auth-submit').disabled = view === 'reset' && !resetToken; }
+  finally { $('auth-submit').disabled = view === 'reset' && !resetToken; $('auth-submit').setAttribute('aria-busy', 'false'); }
 });
 $('show-password').addEventListener('click', () => {
   const showing = form.elements.password.type === 'password';
