@@ -7,7 +7,7 @@
   <title>HyperVaults · Overview</title>
   <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css?v=6">
-  <script type="module" src="/static/js/app.js?v=8"></script>
+  <script type="module" src="/static/js/app.js?v=9"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -53,22 +53,6 @@
         <section id="view-positions" class="view" aria-label="Positions" hidden>
           <div class="position-toolbar"><div class="segmented" role="group" aria-label="Position filter"><button class="is-active" type="button" data-position-filter="all" aria-pressed="true">All</button><button type="button" data-position-filter="active" aria-pressed="false">Active</button><button type="button" data-position-filter="settled" aria-pressed="false">Settled</button></div><span class="muted" id="position-count"></span></div>
           <div id="position-list" class="position-grid"><p class="empty">Loading positions…</p></div>
-        </section>
-        <section id="view-security" class="view" aria-label="Account security" hidden>
-          <div class="two-column">
-            <section class="panel"><div class="panel-heading"><h2>Linked wallets</h2><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#wallet"></use></svg></div><div id="wallet-list" class="item-list"></div><div class="panel-body"><div class="form-actions"><button class="button" id="link-wallet" type="button" disabled>Connect wallet</button><button class="button button-secondary" id="wallet-reauth" type="button" disabled>Verify wallet</button></div><p class="form-hint muted">Link with a signature. Your email session stays signed in.</p></div></section>
-            <section class="panel"><div class="panel-heading"><h2 id="password-title">Email & password</h2><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#lock"></use></svg></div><form id="password-form" class="panel-body form-stack" method="post">
-              <p id="password-email" class="form-hint muted wrap-address" hidden></p>
-              <label id="password-email-label" hidden>Email<input name="email" type="email" autocomplete="username" placeholder="you@example.com" maxlength="254"></label>
-              <label id="current-password-label">Current password<input name="current_password" type="password" autocomplete="current-password" maxlength="128"></label>
-              <label><span id="new-password-label">New password</span><span class="password-field"><input name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><button id="security-show-password" class="icon-button" type="button" aria-label="Show new password" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#eye"></use></svg></button></span></label>
-              <label>Confirm password<input name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
-              <p id="password-setup-hint" class="form-hint muted">At least 12 characters. Other sessions will sign out.</p>
-              <div class="form-actions"><button id="save-password" class="button" type="submit" disabled>Update password</button><button class="button button-secondary" id="reauth" type="button">Verify password</button></div><p class="form-message" role="status" aria-live="polite"></p>
-            </form></section>
-          </div>
-          <section class="panel"><div class="panel-heading"><h2>Sessions</h2><button class="button button-secondary button-small" id="revoke-others">Sign out other sessions</button></div><div id="session-list" class="item-list"></div></section>
-          <details class="panel disclosure"><summary>Security activity<svg class="icon" aria-hidden="true"><use href="/static/icons.svg#chevron"></use></svg></summary><div id="security-activity" class="item-list"></div></details>
         </section>
         <section id="view-admin" class="view" aria-label="Administration" hidden>
           <div class="segmented admin-tabs" role="tablist" aria-label="Administration"><button id="tab-contract" role="tab" aria-selected="true" aria-controls="admin-contract" tabindex="0">Contract</button><button id="tab-accounts" role="tab" aria-selected="false" aria-controls="admin-accounts" tabindex="-1">Accounts</button><button id="tab-activity" role="tab" aria-selected="false" aria-controls="admin-activity" tabindex="-1">Activity</button></div>

@@ -218,7 +218,11 @@ def create_app(settings: Settings | None = None, db=None, chain=None, clock=utcn
             methods=["GET"],
             include_in_schema=False,
         )
-    for path in ["/overview", "/vaults", "/positions", "/security", "/admin"]:
+    @app.get("/security", include_in_schema=False)
+    def account_page():
+        return FileResponse(ROOT / "webapp/templates/account.html")
+
+    for path in ["/overview", "/vaults", "/positions", "/admin"]:
         app.add_api_route(
             path,
             lambda: FileResponse(ROOT / "webapp/templates/index.html"),

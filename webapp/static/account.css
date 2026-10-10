@@ -1,0 +1,27 @@
+/* Account pages use the shared controls, without the vault workspace layout. */
+.account-body { min-height: 100dvh; background: radial-gradient(ellipse at 50% 0, #221c3033, transparent 60%), var(--bg); }
+.account-header { max-width: 1120px; padding: 28px 36px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.account-body main#main { width: 100%; max-width: 1120px; padding-top: 24px; }
+.account-body .panel { margin-bottom: 24px; }
+.account-body .two-column > .panel { margin-bottom: 0; }
+.account-wallet-bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 28px 0 18px; }
+.account-wallet-bar > span { max-width: 70%; }
+.mfa-panel { border-color: #544368; }
+.mfa-panel .panel-body > p { margin-bottom: 0; }
+.mfa-panel form { max-width: 540px; padding-top: 18px; border-top: 1px solid var(--line); }
+.setup-key { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--bg); border-radius: 12px; padding: 14px; }
+.setup-key code { overflow-wrap: anywhere; font-size: 14px; letter-spacing: 1px; }
+#mfa-codes { margin: 0; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
+.confirmation-dialog { width: min(420px, calc(100% - 32px)); }
+.confirmation-dialog form { padding: 26px; }
+.confirmation-dialog h2 { font-size: 22px; margin-bottom: 4px; }
+@media (max-width: 700px) {
+  .account-header { padding: 22px 20px; flex-wrap: wrap; gap: 18px; }
+  .account-header .form-actions { margin-top: 0; }
+  .account-body main#main { padding: 22px 20px 44px; }
+  .account-body .page-heading { flex-wrap: wrap; gap: 18px; }
+  .account-wallet-bar { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .account-wallet-bar > span { max-width: 100%; }
+  .setup-key { align-items: flex-start; flex-direction: column; }
+  #mfa-codes { font-size: 11px; padding: 12px; }
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>HyperVaults · Account security</title>
+  <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css?v=6">
+  <link rel="stylesheet" href="/static/account.css?v=1">
+  <script type="module" src="/static/js/account.js?v=1"></script>
+</head>
+<body class="account-body">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="account-header"><a class="brand" href="/overview"><img src="/static/favicon.svg?v=2" alt="" width="32" height="32">HyperVaults</a><div class="form-actions"><a class="text-link" href="/overview">Back to dashboard</a><button class="button button-secondary button-small" id="logout" type="button">Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <div class="page-heading"><div><h1>Account security</h1><p class="subheading" id="account-identity">Loading account…</p></div><button class="button button-secondary button-small" id="verify-account" type="button" disabled>Verify identity</button></div>
+    <div id="error-banner" class="notice notice-error" role="alert" hidden></div>
+    <section class="panel mfa-panel" aria-labelledby="mfa-title">
+      <div class="panel-heading"><h2 id="mfa-title">Two-factor authentication</h2><span class="badge badge-muted" id="mfa-status">Loading…</span></div>
+      <div class="panel-body form-stack">
+        <p class="muted" id="mfa-description">Add an authenticator to protect your account.</p>
+        <div class="form-actions"><button class="button" id="mfa-start" type="button" disabled>Set up authenticator</button><button class="button button-secondary" id="mfa-replace-codes" type="button" hidden>New recovery codes</button><button class="button button-secondary" id="mfa-disable" type="button" hidden>Turn off</button></div>
+        <form id="mfa-setup-form" class="form-stack" method="post" hidden>
+          <p class="form-hint muted">In your authenticator, add an account using this setup key.</p>
+          <div class="setup-key"><code id="mfa-secret"></code><button id="mfa-copy-key" class="button button-secondary button-small" type="button">Copy key</button></div>
+          <label>Authenticator code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="000000" required></label>
+          <div class="form-actions"><button id="mfa-enable" class="button" type="submit">Enable two-factor</button><button id="mfa-cancel-setup" class="button button-secondary" type="button">Cancel</button></div>
+          <p class="form-message" role="status" aria-live="polite"></p>
+        </form>
+        <div id="mfa-recovery" class="form-stack" hidden>
+          <h3>Save your recovery codes</h3><p class="form-hint muted">Shown once. Keep them somewhere safe. Each code works once.</p>
+          <pre id="mfa-codes" tabindex="0" aria-label="Recovery codes"></pre>
+          <div class="form-actions"><button id="mfa-download-codes" class="button" type="button">Download codes</button><button id="mfa-dismiss-codes" class="button button-secondary" type="button">I've saved them</button></div>
+        </div>
+      </div>
+    </section>
+    <div class="account-wallet-bar"><span class="form-hint muted wrap-address" id="connected-address">Wallet disconnected</span><button id="connect-wallet" class="button button-secondary button-small" type="button" disabled><span id="wallet-button-label">Connect wallet</span></button></div>
+        <section id="view-security" class="view" aria-label="Account security">
+          <div class="two-column">
+            <section class="panel"><div class="panel-heading"><h2>Linked wallets</h2><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#wallet"></use></svg></div><div id="wallet-list" class="item-list"></div><div class="panel-body"><div class="form-actions"><button class="button" id="link-wallet" type="button" disabled>Connect wallet</button></div><p class="form-hint muted">Link with a signature. Your email session stays signed in.</p></div></section>
+            <section class="panel"><div class="panel-heading"><h2 id="password-title">Email & password</h2><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#lock"></use></svg></div><form id="password-form" class="panel-body form-stack" method="post">
+              <p id="password-email" class="form-hint muted wrap-address" hidden></p>
+              <label id="password-email-label" hidden>Email<input name="email" type="email" autocomplete="username" placeholder="you@example.com" maxlength="254"></label>
+              <label id="current-password-label">Current password<input name="current_password" type="password" autocomplete="current-password" maxlength="128"></label>
+              <label><span id="new-password-label">New password</span><span class="password-field"><input name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><button id="security-show-password" class="icon-button" type="button" aria-label="Show new password" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#eye"></use></svg></button></span></label>
+              <label>Confirm password<input name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+              <p id="password-setup-hint" class="form-hint muted">At least 12 characters. Other sessions will sign out.</p>
+              <div class="form-actions"><button id="save-password" class="button" type="submit" disabled>Update password</button></div><p class="form-message" role="status" aria-live="polite"></p>
+            </form></section>
+          </div>
+          <section class="panel"><div class="panel-heading"><h2>Sessions</h2><button class="button button-secondary button-small" id="revoke-others">Sign out other sessions</button></div><div id="session-list" class="item-list"></div></section>
+          <details class="panel disclosure"><summary>Security activity<svg class="icon" aria-hidden="true"><use href="/static/icons.svg#chevron"></use></svg></summary><div id="security-activity" class="item-list"></div></details>
+        </section>
+  <p class="form-hint muted" id="freshness" role="status"></p>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

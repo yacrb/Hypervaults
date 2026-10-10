@@ -35,14 +35,14 @@ export class Wallet extends EventTarget {
 async def fixture(browser, has_password=True):
     context = await browser.new_context(viewport={"width": 375, "height": 812})
     user = {"id": "fixture", "name": "Member", "role": "user", "email": "fixture@example.com" if has_password else None,
-            "has_password": has_password, "wallets": [] if has_password else [ADDRESS]}
+            "has_password": has_password, "mfa_enabled": False, "recovery_codes_remaining": 0, "wallets": [] if has_password else [ADDRESS]}
     requests = []
 
     async def respond(route):
         request = route.request
         path = urlparse(request.url).path
         if path in {"/overview", "/security"}:
-            return await route.fulfill(path=ROOT / "webapp/templates/index.html", content_type="text/html")
+            return await route.fulfill(path=ROOT / ("webapp/templates/account.html" if path == "/security" else "webapp/templates/index.html"), content_type="text/html")
         if path.startswith("/static/"):
             source = (ROOT / "webapp" / path.lstrip("/")).resolve()
             assert source.is_relative_to(ROOT / "webapp/static")
@@ -68,6 +68,18 @@ async def fixture(browser, has_password=True):
             assert request.headers["x-csrf-token"] == "rotated-fixture-csrf"
             user.update(has_password=True, email=request.post_data_json.get("email", user["email"]))
             return await route.fulfill(json={"user": user, "csrf": "password-fixture-csrf"})
+        if path == "/api/auth/reauth":
+            return await route.fulfill(json={"ok": True})
+        if path == "/api/security/mfa/setup":
+            return await route.fulfill(json={"ok": True} if request.method == "DELETE" else {"secret": "JBSWY3DPEHPK3PXP", "uri": "otpauth://fixture"})
+        if path == "/api/security/mfa/enable":
+            if request.post_data_json["code"] != "123456":
+                return await route.fulfill(status=400, json={"detail": "Enter the six-digit code from your authenticator."})
+            user.update(mfa_enabled=True, recovery_codes_remaining=8)
+            return await route.fulfill(json={"user": user, "csrf": "fixture-csrf", "recovery_codes": [f"{i:032x}" for i in range(8)]})
+        if path == "/api/security/mfa":
+            user.update(mfa_enabled=False, recovery_codes_remaining=0)
+            return await route.fulfill(json={"user": user, "csrf": "fixture-csrf"})
         assert path in payload, path
         await route.fulfill(json=payload[path])
 
@@ -88,7 +100,7 @@ async def main():
         assert not any(path == "/api/auth/verify" for path, _ in requests)
         await page.locator("#wallet-setup-action").click()
         await page.wait_for_function("walletActions.includes('link')")
-        await page.locator("#link-wallet").dispatch_event("click")
+        await page.locator("#wallet-setup-action").dispatch_event("click")
         await page.evaluate("cancelProof()")
         await page.locator("#wallet-setup-action:enabled").wait_for()
         assert await page.locator("#wallet-setup").is_visible()
@@ -99,7 +111,7 @@ async def main():
         await page.evaluate("finishProof()")
         await page.locator("#wallet-setup").wait_for(state="hidden")
         assert sum(path == "/api/auth/verify" for path, _ in requests) == 1
-        assert await page.locator("#link-wallet").is_disabled()
+        assert await page.locator("#link-wallet").count() == 0
         assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         await context.close()
 
@@ -148,8 +160,40 @@ async def main():
         assert await page.locator("#current-password-label").is_visible()
         assert await page.locator('input[name="current_password"]').get_attribute("required") is not None
         await context.close()
+        context, page, requests = await fixture(browser)
+        await page.goto(BASE + "/security")
+        await page.locator("#mfa-start:enabled").wait_for()
+        assert await page.locator(".app-shell").count() == 0
+        assert not any(path == "/api/snapshot" for path, _ in requests)
+        await page.locator("#mfa-start").click()
+        await page.locator("dialog input[name=password]").fill("fixture-password")
+        await page.locator("dialog button[type=submit]").click()
+        await page.locator("#mfa-setup-form").wait_for()
+        await page.locator("#mfa-setup-form input").fill("000000")
+        await page.locator("#mfa-enable").click()
+        await page.locator("#mfa-setup-form .form-message").filter(has_text="six-digit").wait_for()
+        await page.locator("#mfa-setup-form input").fill("123456")
+        await page.locator("#mfa-enable").click()
+        await page.locator("#mfa-recovery").wait_for()
+        assert await page.locator("#mfa-secret").inner_text() == ""
+        assert len((await page.locator("#mfa-codes").inner_text()).splitlines()) == 8
+        assert await page.locator("#mfa-status").inner_text() == "Enabled"
+        await page.locator("#mfa-dismiss-codes").click()
+        assert await page.locator("#mfa-codes").inner_text() == ""
+        await page.locator("#mfa-disable").click()
+        await page.locator("dialog button").filter(has_text="Cancel").click()
+        assert not any(path == "/api/security/mfa" for path, _ in requests)
+        await page.locator("#mfa-disable").click()
+        await page.locator("dialog input[name=password]").fill("fixture-password")
+        await page.locator("dialog input[name=code]").fill("123456")
+        await page.locator("dialog button[type=submit]").click()
+        await page.locator("#mfa-status").filter(has_text="Off").wait_for()
+        proof = [body for path, body in requests if path == "/api/auth/reauth"][-1]
+        assert proof["mfa_action"] == "disable"
+        assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        await context.close()
         await browser.close()
-        print("PASS: separate connect/link, proof cancellation/retry, duplicate guards, wallet-authorized email setup, password confirmation and current-password controls.")
+        print("PASS: separate connect/link, proof cancellation/retry, duplicate guards, wallet-authorized email setup, password confirmation, separate account layout and MFA enrollment/cancellation.")
 
 
 if __name__ == "__main__":

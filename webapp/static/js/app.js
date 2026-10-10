@@ -6,12 +6,11 @@ const screen = {
   overview: ['Overview', 'Your tokens at a glance.'],
   vaults: ['Vaults', 'Choose your lock. Know your reward.'],
   positions: ['Positions', 'Track your locks and withdraw at maturity.'],
-  security: ['Security', 'Your wallets, passwords and sessions.'],
   admin: ['Administration', 'Manage funding, offers and accounts.'],
 }[view] || ['Overview', 'Your positions and rewards.'];
 let user = null, config = null, wallet = null, snapshot = null, prepared = null, transactionBusy = false;
 let toastTimer = null, refreshing = false, notePosition = null, positionFilter = 'all', previewFocus = null;
-let linkingWallet = false, passwordBusy = null;
+let linkingWallet = false;
 
 document.title = `HyperVaults · ${screen[0]}`;
 $('page-title').textContent = $('breadcrumb').textContent = screen[0];
@@ -46,40 +45,22 @@ function account() {
   $('admin-nav').hidden = user.role !== 'admin';
   walletSetupState();
 }
-function passwordFormState() {
-  if (!user) return;
-  const setup = !user.has_password, form = $('password-form');
-  $('password-title').textContent = setup ? 'Set up email & password' : 'Email & password';
-  $('password-email').hidden = setup; $('password-email').textContent = user.email || '';
-  $('password-email-label').hidden = !setup; form.elements.email.required = setup;
-  $('current-password-label').hidden = setup; form.elements.current_password.required = !setup;
-  $('new-password-label').textContent = setup ? 'Password' : 'New password';
-  $('password-setup-hint').textContent = setup ? '12+ characters. Confirm setup with your linked wallet.' : '12+ characters. Other sessions will sign out.';
-  $('save-password').textContent = passwordBusy === 'wallet' ? 'Waiting for wallet…' : passwordBusy ? 'Saving…' : setup ? 'Save email & password' : 'Update password';
-  $('save-password').disabled = !!passwordBusy || linkingWallet || (setup && (!wallet?.address || !user.wallets.includes(wallet.address)));
-  $('save-password').setAttribute('aria-busy', String(!!passwordBusy));
-  $('reauth').hidden = setup; $('reauth').disabled = !!passwordBusy;
-}
 function walletSetupState() {
   if (!user) return;
   const connected = !!wallet?.address, linked = connected && user.wallets.includes(wallet.address);
-  $('wallet-setup').hidden = user.wallets.length > 0 || ['security', 'admin'].includes(view);
+  $('wallet-setup').hidden = user.wallets.length > 0 || view === 'admin';
   $('wallet-setup-title').textContent = connected ? 'Link your wallet' : 'Connect your wallet';
   $('wallet-setup-description').textContent = connected ? `${shortAddress(wallet.address)} · Sign an ownership proof to link it to this account.` : "You're signed in. Connect, then sign to link your wallet.";
   for (const [id, current, complete] of [['setup-connect', !connected, connected], ['setup-link', connected, false]]) {
     $(id).classList.toggle('is-complete', complete);
     if (current) $(id).setAttribute('aria-current', 'step'); else $(id).removeAttribute('aria-current');
   }
-  for (const id of ['wallet-setup-action', 'link-wallet']) {
+  for (const id of ['wallet-setup-action']) {
     $(id).textContent = linkingWallet ? 'Waiting for signature…' : wallet?.connecting ? 'Connecting…' : linked ? 'Wallet linked' : connected ? 'Link wallet' : 'Connect wallet';
-    $(id).disabled = !wallet || wallet.connecting || linkingWallet || linked || !!passwordBusy;
+    $(id).disabled = !wallet || wallet.connecting || linkingWallet || linked;
     $(id).setAttribute('aria-busy', String(linkingWallet || !!wallet?.connecting));
   }
-  $('wallet-reauth').disabled = !linked || linkingWallet || wallet?.connecting || !!passwordBusy;
-  $('wallet-reauth').hidden = !linked;
-  $('link-wallet').hidden = linked;
-  $('connect-wallet').disabled = !wallet || wallet.connecting || linkingWallet || !!passwordBusy;
-  passwordFormState();
+  $('connect-wallet').disabled = !wallet || wallet.connecting || linkingWallet;
 }
 function walletState(message = '') {
   if (!wallet) return;
@@ -87,14 +68,12 @@ function walletState(message = '') {
   if (!$('wallet-setup').hidden && message) $('wallet-setup-description').textContent = message;
   $('wallet-button-label').textContent = wallet.address ? shortAddress(wallet.address) : 'Connect wallet';
   $('connect-wallet').title = wallet.address ? `${wallet.selected.name} · ${wallet.address}` : 'Choose a browser wallet';
-  $('connected-address').textContent = wallet.address ? `Connected ${wallet.address}` : 'Wallet disconnected · website session remains separate';
-  $('connected-address').classList.add('wrap-address');
   const notice = $('wallet-notice');
   notice.replaceChildren();
-  if (view === 'security' || !$('wallet-setup').hidden) { notice.hidden = true; }
-  else if ((!wallet.address && ['vaults', 'positions', 'security'].includes(view)) || (wallet.address && !user.wallets.includes(wallet.address))) {
+  if (!$('wallet-setup').hidden) { notice.hidden = true; }
+  else if ((!wallet.address && ['vaults', 'positions'].includes(view)) || (wallet.address && !user.wallets.includes(wallet.address))) {
     notice.hidden = false;
-    notice.append(element('span', '', message || (wallet.address ? 'Link this wallet in Security to use it with your account.' : view === 'security' ? 'Connect a linked wallet to continue.' : 'Connect a wallet to use your tokens.')));
+    notice.append(element('span', '', message || (wallet.address ? 'Link this wallet in Security to use it with your account.' : 'Connect a wallet to use your tokens.')));
     if (!wallet.address) {
       const connectButton = button('Connect wallet', () => $('connect-wallet').click(), true);
       connectButton.disabled = wallet.connecting;
@@ -337,35 +316,8 @@ $('note-form').addEventListener('submit', async event => {
 });
 $('note-dialog').addEventListener('close', () => { $('note-form').reset(); notePosition = null; });
 
-async function renderSecurity() {
-  $('wallet-list').replaceChildren();
-  if (!user.wallets.length) empty($('wallet-list'), 'No linked wallets yet.');
-  for (const address of user.wallets) {
-    const row = item(shortAddress(address), 'Ownership verified', '', 'wallet');
-    row.querySelector('.item-content').append(disclosure('View address', element('small', 'mono wrap-address', address)));
-    const actions = element('div', 'item-actions');
-    actions.append(button('Unlink', action(async () => {
-      if (!confirm('Unlink this wallet from website access? Its on-chain positions and owner remain unchanged.')) return;
-      const result = await api(`/security/wallets/${address}`, {method: 'DELETE'}); user = result.user;
-      account(); walletState(); await renderSecurity();
-    }), true)); row.append(actions); $('wallet-list').append(row);
-  }
-  passwordFormState();
-  const [sessions, activity] = await Promise.all([api('/security/sessions'), api('/security/activity')]);
-  $('session-list').replaceChildren();
-  for (const session of sessions.sessions) {
-    const row = item(session.current ? 'This browser' : 'Other browser', `Last used ${dateString(session.last_seen)}`, '', 'shield');
-    row.querySelector('.item-content').append(disclosure('Browser details', element('small', '', session.agent)));
-    const actions = element('div', 'item-actions');
-    actions.append(button(session.current ? 'Sign out' : 'Revoke session', action(async () => {
-      await api(`/security/sessions/${session.id}`, {method: 'DELETE'});
-      if (session.current) location.assign('/login'); else { toast('Session revoked.'); await renderSecurity(); }
-    }), true)); row.append(actions); $('session-list').append(row);
-  }
-  activityEvents($('security-activity'), activity.events, true);
-}
 async function setupWallet() {
-  if (!wallet || linkingWallet || wallet.connecting || passwordBusy) return;
+  if (!wallet || linkingWallet || wallet.connecting) return;
   $('error-banner').hidden = true;
   if (!wallet.address) { await wallet.connect(); walletState(); return; }
   if (user.wallets.includes(wallet.address)) return;
@@ -373,58 +325,12 @@ async function setupWallet() {
   try {
     const result = await wallet.authenticate('link'); user = result.user; account(); walletState();
     toast('Wallet linked. You can now use vaults.');
-    if (view === 'security') await renderSecurity(); else await refresh();
+    await refresh();
   } finally { linkingWallet = false; walletSetupState(); }
 }
-for (const id of ['wallet-setup-action', 'link-wallet']) $(id).addEventListener('click', async event => {
+for (const id of ['wallet-setup-action']) $(id).addEventListener('click', async event => {
   await action(setupWallet)(event); walletSetupState();
 });
-$('wallet-reauth').addEventListener('click', action(async () => {
-  if (!wallet?.address) throw new Error('Connect a linked wallet explicitly before authenticating.');
-  await wallet.authenticate('reauth'); toast('Recent linked-wallet authentication verified.'); await renderSecurity();
-}));
-$('reauth').addEventListener('click', action(async () => {
-  await api('/auth/reauth', {method: 'POST', body: {password: $('password-form').elements.current_password.value}});
-  $('password-form').elements.current_password.value = ''; toast('Recent password authentication verified.');
-}));
-$('password-form').addEventListener('submit', async event => {
-  event.preventDefault(); const form = event.currentTarget, message = form.querySelector('.form-message');
-  if (!user || passwordBusy || linkingWallet) return;
-  const data = Object.fromEntries(new FormData(form)), setup = !user.has_password;
-  message.textContent = ''; message.classList.remove('is-error');
-  form.elements.confirm_password.removeAttribute('aria-invalid');
-  if (data.new_password !== data.confirm_password) {
-    message.textContent = 'Passwords do not match.'; message.classList.add('is-error');
-    form.elements.confirm_password.setAttribute('aria-invalid', 'true'); form.elements.confirm_password.focus(); return;
-  }
-  passwordBusy = setup ? 'wallet' : 'save'; walletSetupState();
-  try {
-    if (setup) {
-      if (!wallet?.address || !user.wallets.includes(wallet.address)) throw new Error('Connect a linked wallet to set up email sign-in.');
-      await wallet.authenticate('reauth'); passwordBusy = 'save'; walletSetupState();
-    }
-    const body = {current_password: setup ? '' : data.current_password, new_password: data.new_password};
-    if (setup) body.email = data.email;
-    const result = await api('/auth/password', {method: 'POST', body});
-    user = result.user; form.reset(); account();
-    for (const name of ['new_password', 'confirm_password']) form.elements[name].type = 'password';
-    $('security-show-password').setAttribute('aria-label', 'Show new password'); $('security-show-password').setAttribute('aria-pressed', 'false');
-    message.textContent = setup ? 'Email sign-in is ready. Use email or your linked wallet.' : 'Password updated. Other sessions signed out.';
-    await renderSecurity();
-  } catch (error) { message.textContent = walletError(error); message.classList.add('is-error'); }
-  finally { passwordBusy = null; walletSetupState(); }
-});
-$('security-show-password').addEventListener('click', () => {
-  const form = $('password-form'), showing = form.elements.new_password.type === 'password';
-  for (const name of ['new_password', 'confirm_password']) form.elements[name].type = showing ? 'text' : 'password';
-  $('security-show-password').setAttribute('aria-label', showing ? 'Hide new password' : 'Show new password');
-  $('security-show-password').setAttribute('aria-pressed', String(showing));
-});
-$('revoke-others').addEventListener('click', action(async () => {
-  const result = await api('/security/sessions/revoke-others', {method: 'POST'});
-  toast(`${result.count} other session(s) revoked.`); await renderSecurity();
-}));
-
 async function renderAdmin() {
   $('reserve-total').textContent = tokens(snapshot.reserves.uncommitted);
   $('liability-total').textContent = tokens(snapshot.reserves.liabilities);
@@ -560,8 +466,6 @@ async function refresh() {
   try {
     const session = await boot(); if (!session.user) { location.assign('/login'); return; }
     user = session.user; account();
-    // Website security controls remain usable when the blockchain is offline.
-    if (view === 'security') await renderSecurity();
     if (view === 'admin') await renderAdminAccounts();
     if (!config) {
       config = await api('/config'); wallet = new Wallet(config);
@@ -572,9 +476,6 @@ async function refresh() {
       document.querySelector('.environment').lastChild.textContent = config.chain_id === 31337 ? 'Anvil' : 'Sepolia';
       walletState();
     }
-    if (view === 'security') {
-      $('freshness').textContent = 'Account data up to date'; return;
-    }
     snapshot = await api(view === 'admin' ? '/admin/snapshot' : '/snapshot');
     $('live-status').classList.remove('is-error', 'is-stale');
     $('freshness').textContent = `Confirmed block ${snapshot.block.number} · Updated ${new Date(snapshot.block.observed_at).toLocaleTimeString()}`;
@@ -584,7 +485,7 @@ async function refresh() {
     if (view === 'admin') await renderAdmin();
   } catch (error) {
     snapshot = null; report(error); $('live-status').classList.add('is-error');
-    $('freshness').textContent = view === 'security' ? 'Account controls are separate · wallet configuration unavailable' : 'Data unavailable · no current balances or confirmations verified';
+    $('freshness').textContent = 'Data unavailable · no current balances or confirmations verified';
     for (const id of ['principal-total', 'reward-total', 'maturity-total', 'reserve-total', 'liability-total', 'contract-total']) $(id).textContent = '—';
     for (const id of view === 'overview' ? ['overview-positions', 'recent-activity'] : view === 'vaults' ? ['offers'] : view === 'positions' ? ['position-list'] : []) empty($(id), 'Blockchain data unavailable. Refresh when the RPC and index recover.');
     if (view === 'admin') {
@@ -615,5 +516,5 @@ setInterval(() => {
   if (snapshot && Date.now() - Date.parse(snapshot.block.observed_at) > 30000) {
     $('live-status').classList.add('is-stale'); $('freshness').textContent = `Stale read from block ${snapshot.block.number}. Refresh before transacting.`;
   }
-  if (!document.hidden && !transactionBusy && !$('transaction-dialog').open && !$('note-dialog').open && view !== 'security') refresh();
+  if (!document.hidden && !transactionBusy && !$('transaction-dialog').open && !$('note-dialog').open) refresh();
 }, 15000);
