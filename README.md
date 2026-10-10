@@ -159,7 +159,7 @@ Both methods use the same account and the same enabled MFA gate.
 | **Permissions** | Server-side roles and record ownership, independent of hidden buttons or navigation. |
 
 <details>
-<summary>💜 Follow the security flows visually</summary>
+<summary>Follow the security flows visually</summary>
 
 ![Email and wallet primary proofs converge on an optional MFA gate; the pending session has no protected API access](docs/assets/security/sign-in.svg)
 
@@ -249,7 +249,7 @@ and the app image.
 
 </details>
 
-<p align="center">Built by <strong>Mohamed Yacine Riabi</strong> and <strong>Yassine ben lazreg</strong><br>ING 5 SSIRE A · 💜 HyperVaults</p>
+<p align="center">Built by <strong>Mohamed Yacine Riabi</strong> and <strong>Yassine ben lazreg</strong></p>
 
 <details>
 <summary>🎨 Artwork credits</summary>
