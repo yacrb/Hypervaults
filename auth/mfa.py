@@ -10,6 +10,7 @@ import uuid
 from datetime import timedelta
 from urllib.parse import quote, urlencode
 
+import segno
 from fastapi import HTTPException
 from pymongo import ReturnDocument
 
@@ -119,7 +120,9 @@ class MFAService:
             }
         )
         uri = f"otpauth://totp/{label}?{parameters}"
-        return {"secret": secret, "uri": uri}
+        # Encode locally: enrollment secrets never leave the authenticated response.
+        qr = segno.make_qr(uri).png_data_uri(scale=5, border=4, dark="black", light="white")
+        return {"secret": secret, "uri": uri, "qr_data_url": qr}
 
     def confirmation(self, action: str | None, user: dict) -> dict | None:
         if not action:

@@ -12,11 +12,15 @@ import unittest
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+from io import BytesIO
+from urllib.parse import parse_qs, unquote, urlparse
 
+import zxingcpp
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from PIL import Image
 from pymongo import MongoClient
 
 from auth.crypto import NoteCipher, NoteTampered
@@ -80,6 +84,34 @@ class AuthenticationTests(unittest.TestCase):
     def next_code(self):
         self.now += timedelta(seconds=30)
         return totp(self.secret, int(self.now.timestamp()) // 30)
+
+    def test_setup_qr_contains_the_enrollment_and_is_private(self):
+        setup = self.post("/security/mfa/setup")
+        self.assertEqual(setup.status_code, 200)
+        self.assertIn("no-store", setup.headers["cache-control"])
+        payload = setup.json()
+        prefix, encoded = payload["qr_data_url"].split(",", 1)
+        self.assertEqual(prefix, "data:image/png;base64")
+        with Image.open(BytesIO(base64.b64decode(encoded, validate=True))) as image:
+            scanned = zxingcpp.read_barcode(image)
+        self.assertIsNotNone(scanned)
+        self.assertEqual(scanned.text, payload["uri"])
+        uri = urlparse(scanned.text)
+        self.assertEqual((uri.scheme, uri.netloc), ("otpauth", "totp"))
+        self.assertEqual(unquote(uri.path), "/HyperVaults:fixture@example.com")
+        self.assertEqual(
+            parse_qs(uri.query),
+            {
+                "secret": [payload["secret"]],
+                "issuer": ["HyperVaults"],
+                "algorithm": ["SHA1"],
+                "digits": ["6"],
+                "period": ["30"],
+            },
+        )
+        self.assertNotIn(payload["qr_data_url"], str(self.db.mfa_setups.find_one()))
+        self.post("/auth/logout")
+        self.assertEqual(self.post("/security/mfa/setup").status_code, 401)
 
     def enable(self):
         setup = self.post("/security/mfa/setup")
