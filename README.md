@@ -52,7 +52,7 @@ reward, and existing positions keep their original terms.
 
 ![Five steps from sign-in through exact token approval, funded locking and withdrawal](docs/assets/token-flow.svg)
 
-1. **Sign in** with a wallet or email. Email users link their wallet in **Security**.
+1. **Sign in** with a wallet or email. Email users are guided to connect and link a wallet.
 2. **Get test tokens** in **Vaults**, review an offer and preview a deposit.
 3. **Track the position** and withdraw after maturity. Private notes are encrypted on the server.
 

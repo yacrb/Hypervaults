@@ -63,7 +63,7 @@ function passwordFormState() {
 function walletSetupState() {
   if (!user) return;
   const connected = !!wallet?.address, linked = connected && user.wallets.includes(wallet.address);
-  $('wallet-setup').hidden = user.wallets.length > 0 || view === 'admin';
+  $('wallet-setup').hidden = user.wallets.length > 0 || ['security', 'admin'].includes(view);
   $('wallet-setup-title').textContent = connected ? 'Link your wallet' : 'Connect your wallet';
   $('wallet-setup-description').textContent = connected ? `${shortAddress(wallet.address)} · Sign an ownership proof to link it to this account.` : "You're signed in. Connect, then sign to link your wallet.";
   for (const [id, current, complete] of [['setup-connect', !connected, connected], ['setup-link', connected, false]]) {
@@ -76,6 +76,8 @@ function walletSetupState() {
     $(id).setAttribute('aria-busy', String(linkingWallet || !!wallet?.connecting));
   }
   $('wallet-reauth').disabled = !linked || linkingWallet || wallet?.connecting || !!passwordBusy;
+  $('wallet-reauth').hidden = !linked;
+  $('link-wallet').hidden = linked;
   $('connect-wallet').disabled = !wallet || wallet.connecting || linkingWallet || !!passwordBusy;
   passwordFormState();
 }
@@ -89,7 +91,7 @@ function walletState(message = '') {
   $('connected-address').classList.add('wrap-address');
   const notice = $('wallet-notice');
   notice.replaceChildren();
-  if (!$('wallet-setup').hidden) { notice.hidden = true; }
+  if (view === 'security' || !$('wallet-setup').hidden) { notice.hidden = true; }
   else if ((!wallet.address && ['vaults', 'positions', 'security'].includes(view)) || (wallet.address && !user.wallets.includes(wallet.address))) {
     notice.hidden = false;
     notice.append(element('span', '', message || (wallet.address ? 'Link this wallet in Security to use it with your account.' : view === 'security' ? 'Connect a linked wallet to continue.' : 'Connect a wallet to use your tokens.')));
@@ -219,7 +221,7 @@ function renderOverview() {
   $('maturity-total').textContent = tokens(snapshot.totals.at_maturity);
   $('overview-positions').replaceChildren();
   const active = snapshot.positions.filter(position => !position.settled);
-  if (!active.length) emptyState($('overview-positions'), 'Your next position starts here', user.wallets.length ? 'Choose a vault to get started.' : 'Link a wallet to view your positions.', user.wallets.length ? '/vaults' : '/security', user.wallets.length ? 'Explore vaults ↗' : 'Link a wallet ↗');
+  if (!active.length) emptyState($('overview-positions'), 'No active positions', user.wallets.length ? 'Your deposits will appear here.' : 'Link your wallet above to get started.', user.wallets.length ? '/vaults' : null, 'Explore vaults ↗');
   for (const position of active.slice(0, 5)) {
     $('overview-positions').append(item(`Position #${position.id} · ${position.duration / 86400}-day lock`, `${positionState(position)} · maturity ${dateTime(position.matures_at)}`, `${tokens(position.principal)} HVT`));
   }
@@ -288,7 +290,7 @@ function renderPositions() {
   const target = $('position-list'); target.replaceChildren();
   const positions = snapshot.positions.filter(position => positionFilter === 'all' || (positionFilter === 'active' ? !position.settled : position.settled));
   $('position-count').textContent = `${positions.length} position${positions.length === 1 ? '' : 's'}`;
-  if (!positions.length) { emptyState(target, 'No positions here yet', user.wallets.length ? 'Explore vaults to open a new position.' : 'Link a wallet to see your positions.', user.wallets.length ? '/vaults' : '/security', user.wallets.length ? 'Explore vaults ↗' : 'Link a wallet ↗'); return; }
+  if (!positions.length) { emptyState(target, 'No positions here yet', user.wallets.length ? 'Explore vaults to open a new position.' : 'Link your wallet above to get started.', user.wallets.length ? '/vaults' : null, 'Explore vaults ↗'); return; }
   for (const position of positions) {
     const card = element('article', 'position-card'), top = element('div', 'position-top');
     top.append(element('h3', '', `Position #${position.id}`), element('span', `badge${position.settled ? ' badge-muted' : position.mature ? '' : ' badge-warning'}`, positionState(position)));
