@@ -75,6 +75,15 @@ main#main:not(.auth-layout) { max-width: 1280px; margin: 0 auto; padding: 36px 4
 .notice { border: 1px solid #3c334e; background: #211b2c; color: #d4c4ef; padding: 12px 16px; border-radius: 12px; margin-bottom: 22px; font-size: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .notice > span { flex: 1; }
 .notice-error { color: var(--danger); border-color: #5c333e; background: #281920; }
+.setup-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 24px; margin-bottom: 24px; border: 1px solid #4b3d64; border-radius: var(--radius); background: linear-gradient(115deg, #282037, var(--surface)); }
+.setup-card h2 { margin-bottom: 6px; font-size: 18px; }
+.setup-card p { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+.setup-card > .button { flex-shrink: 0; }
+.setup-steps { display: flex; gap: 20px; padding: 0; margin: 0; list-style: none; counter-reset: setup; font-size: 11px; color: var(--muted); }
+.setup-steps li { counter-increment: setup; display: flex; align-items: center; gap: 6px; }
+.setup-steps li::before { content: counter(setup); display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid #4b3d64; border-radius: 50%; font-size: 10px; }
+.setup-steps [aria-current="step"] { color: var(--accent); }
+.setup-steps .is-complete::before { content: "✓"; color: #a6dfbf; border-color: #466852; }
 .metrics-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 30px; }
 .metric { padding: 24px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); min-width: 0; }
 .metric p { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
@@ -333,6 +342,8 @@ dialog h2 { font-size: 22px; letter-spacing: -.6px; padding-right: 20px; margin-
   .segmented button { padding: 8px 13px; }
   .notice { padding: 12px 14px; font-size: 11px; }
   .notice > span { flex-basis: 100%; }
+  .setup-card { flex-direction: column; align-items: stretch; gap: 18px; padding: 20px; }
+  .setup-steps { gap: 12px; flex-wrap: wrap; }
   .disclosure > summary { padding: 17px 18px; }
   #admin-offers .item-actions { padding-left: 40px; }
   .user-controls[open] { min-width: 116px; }

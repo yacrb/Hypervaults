@@ -56,6 +56,11 @@ reward, and existing positions keep their original terms.
 2. **Get test tokens** in **Vaults**, review an offer and preview a deposit.
 3. **Track the position** and withdraw after maturity. Private notes are encrypted on the server.
 
+After email sign-in, the dashboard guides you through **Connect → Link → Ready**.
+Connect first, then click **Link wallet** and sign the ownership proof. Your email
+session stays signed in; connecting alone does not link the wallet. The guide
+disappears after successful linking, and linked wallets are managed in **Security**.
+
 Wallet connection requests the selected network: **Anvil (31337)** or **Sepolia (11155111)**.
 Anvil can be added when missing; enable Sepolia in your wallet's test networks if needed.
 Approve the network request and sign-in message in your wallet. Signing in costs

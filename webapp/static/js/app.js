@@ -11,6 +11,7 @@ const screen = {
 }[view] || ['Overview', 'Your positions and rewards.'];
 let user = null, config = null, wallet = null, snapshot = null, prepared = null, transactionBusy = false;
 let toastTimer = null, refreshing = false, notePosition = null, positionFilter = 'all', previewFocus = null;
+let linkingWallet = false;
 
 document.title = `HyperVaults · ${screen[0]}`;
 $('page-title').textContent = $('breadcrumb').textContent = screen[0];
@@ -43,16 +44,38 @@ function account() {
   $('avatar').textContent = user.name.slice(0, 1).toUpperCase();
   $('account-role').textContent = user.role === 'admin' ? 'Administrator' : 'Member';
   $('admin-nav').hidden = user.role !== 'admin';
+  walletSetupState();
+}
+function walletSetupState() {
+  if (!user) return;
+  const connected = !!wallet?.address, linked = connected && user.wallets.includes(wallet.address);
+  $('wallet-setup').hidden = user.wallets.length > 0 || view === 'admin';
+  $('wallet-setup-title').textContent = connected ? 'Link your wallet' : 'Connect your wallet';
+  $('wallet-setup-description').textContent = connected ? `${shortAddress(wallet.address)} · Sign an ownership proof to link it to this account.` : "You're signed in. Connect, then sign to link your wallet.";
+  for (const [id, current, complete] of [['setup-connect', !connected, connected], ['setup-link', connected, false]]) {
+    $(id).classList.toggle('is-complete', complete);
+    if (current) $(id).setAttribute('aria-current', 'step'); else $(id).removeAttribute('aria-current');
+  }
+  for (const id of ['wallet-setup-action', 'link-wallet']) {
+    $(id).textContent = linkingWallet ? 'Waiting for signature…' : wallet?.connecting ? 'Connecting…' : linked ? 'Wallet linked' : connected ? 'Link wallet' : 'Connect wallet';
+    $(id).disabled = !wallet || wallet.connecting || linkingWallet || linked;
+    $(id).setAttribute('aria-busy', String(linkingWallet || !!wallet?.connecting));
+  }
+  $('wallet-reauth').disabled = !linked || linkingWallet || wallet?.connecting;
+  $('connect-wallet').disabled = !wallet || wallet.connecting || linkingWallet;
 }
 function walletState(message = '') {
   if (!wallet) return;
+  walletSetupState();
+  if (!$('wallet-setup').hidden && message) $('wallet-setup-description').textContent = message;
   $('wallet-button-label').textContent = wallet.address ? shortAddress(wallet.address) : 'Connect wallet';
   $('connect-wallet').title = wallet.address ? `${wallet.selected.name} · ${wallet.address}` : 'Choose a browser wallet';
   $('connected-address').textContent = wallet.address ? `Connected ${wallet.address}` : 'Wallet disconnected · website session remains separate';
   $('connected-address').classList.add('wrap-address');
   const notice = $('wallet-notice');
   notice.replaceChildren();
-  if ((!wallet.address && ['vaults', 'positions', 'security'].includes(view)) || (wallet.address && !user.wallets.includes(wallet.address))) {
+  if (!$('wallet-setup').hidden) { notice.hidden = true; }
+  else if ((!wallet.address && ['vaults', 'positions', 'security'].includes(view)) || (wallet.address && !user.wallets.includes(wallet.address))) {
     notice.hidden = false;
     notice.append(element('span', '', message || (wallet.address ? 'Link this wallet in Security to use it with your account.' : 'Connect a wallet to use your tokens.')));
     if (!wallet.address) {
@@ -329,11 +352,21 @@ async function renderSecurity() {
   }
   activityEvents($('security-activity'), activity.events, true);
 }
-$('link-wallet').addEventListener('click', action(async () => {
-  if (!wallet?.address) throw new Error('Connect the wallet explicitly using the top bar before linking it.');
-  const result = await wallet.authenticate('link'); user = result.user; account(); walletState();
-  toast('Wallet ownership verified and linked. Other website sessions were revoked.'); await renderSecurity();
-}));
+async function setupWallet() {
+  if (!wallet || linkingWallet || wallet.connecting) return;
+  $('error-banner').hidden = true;
+  if (!wallet.address) { await wallet.connect(); walletState(); return; }
+  if (user.wallets.includes(wallet.address)) return;
+  linkingWallet = true; walletSetupState();
+  try {
+    const result = await wallet.authenticate('link'); user = result.user; account(); walletState();
+    toast('Wallet linked. You can now use vaults.');
+    if (view === 'security') await renderSecurity(); else await refresh();
+  } finally { linkingWallet = false; walletSetupState(); }
+}
+for (const id of ['wallet-setup-action', 'link-wallet']) $(id).addEventListener('click', async event => {
+  await action(setupWallet)(event); walletSetupState();
+});
 $('wallet-reauth').addEventListener('click', action(async () => {
   if (!wallet?.address) throw new Error('Connect a linked wallet explicitly before authenticating.');
   await wallet.authenticate('reauth'); toast('Recent linked-wallet authentication verified.'); await renderSecurity();
