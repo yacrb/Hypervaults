@@ -38,12 +38,57 @@ class DeploymentTests(unittest.TestCase):
     def test_record_is_durable_and_duplicate_ack_is_idempotent(self):
         self.plan.status = Mock(return_value={'index': 0})
         self.eth.get_transaction.return_value = self.valid
+        self.eth.get_transaction_receipt.side_effect = TransactionNotFound('pending')
         self.plan.record(0, TX_HASH)
         self.assertIn(TX_HASH, self.plan.path.read_text())
         self.plan.status.reset_mock()
         self.plan.record(0, TX_HASH)
         self.plan.status.assert_not_called()
         self.assertEqual(self.plan.state['transactions'], [TX_HASH])
+
+    def test_confirmed_reverted_batch_is_retained_without_advancing(self):
+        self.plan.status = Mock(return_value={'index': 3})
+        self.eth.get_transaction.return_value = {**self.valid, 'to': OWNER, 'input': HexBytes('0x1234')}
+        self.eth.get_transaction_receipt.return_value = SimpleNamespace(status=0, blockNumber=100, blockHash=HexBytes('0x1234'))
+        self.eth.get_block.return_value = SimpleNamespace(hash=HexBytes('0x1234'))
+        self.assertTrue(self.plan.record(3, TX_HASH))
+        self.assertEqual(self.plan.state['transactions'], [])
+        self.assertEqual(self.plan.state['failed_transactions'], [{'index': 3, 'hash': TX_HASH}])
+        self.assertTrue(self.plan.record(3, TX_HASH))
+        self.assertEqual(len(self.plan.state['failed_transactions']), 1)
+
+    def test_revert_recovery_rejects_wrong_owner_network_reorg_or_shallow_receipt(self):
+        self.plan.status = Mock(return_value={'index': 3})
+        receipt = SimpleNamespace(status=0, blockNumber=100, blockHash=HexBytes('0x1234'))
+        self.eth.get_transaction_receipt.return_value = receipt
+        self.eth.get_block.return_value = SimpleNamespace(hash=HexBytes('0x1234'))
+        for tx in ({**self.valid, 'from': '0x2222222222222222222222222222222222222222'},
+                   {**self.valid, 'chainId': 1}, {**self.valid, 'value': 1}):
+            self.eth.get_transaction.return_value = tx
+            with self.assertRaises(ValueError):
+                self.plan.record(3, TX_HASH)
+        self.eth.get_transaction.return_value = self.valid
+        self.eth.block_number = 104
+        with self.assertRaises(ValueError):
+            self.plan.record(3, TX_HASH)
+        self.eth.block_number = 106
+        self.eth.get_block.return_value.hash = HexBytes('0x5678')
+        with self.assertRaises(ValueError):
+            self.plan.record(3, TX_HASH)
+        self.assertNotIn('failed_transactions', self.plan.state)
+
+    def test_mismatched_successful_batch_cannot_advance(self):
+        self.plan.status = Mock(return_value={'index': 3})
+        self.eth.get_transaction.return_value = {**self.valid, 'to': OWNER, 'input': HexBytes('0x1234')}
+        self.eth.get_transaction_receipt.return_value = SimpleNamespace(status=1)
+        with self.assertRaises(ValueError):
+            self.plan.record(3, TX_HASH)
+        self.assertEqual(self.plan.state['transactions'], [])
+
+    def test_invalid_step_is_rejected(self):
+        for index in (-1, True, '3', 7):
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                self.plan.record(index, TX_HASH)
 
     def test_pending_step_cannot_send_next_step(self):
         self.plan.status = Mock(return_value={'index': 0, 'pending': TX_HASH})

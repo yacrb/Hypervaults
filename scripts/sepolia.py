@@ -112,6 +112,8 @@ class Deployment:
         return result
 
     def record(self, index, tx_hash):
+        if type(index) is not int or not 0 <= index < len(STAGES):
+            raise ValueError('Invalid deployment step')
         if not isinstance(tx_hash, str) or not re.fullmatch(r'0x[0-9a-fA-F]{64}', tx_hash):
             raise ValueError('Invalid transaction hash')
         transactions = self.state['transactions']
@@ -120,7 +122,26 @@ class Deployment:
         status = self.status()
         if status.get('pending') or status.get('ready') or status['index'] != index:
             raise ValueError('Wait for the current transaction before sending another')
-        self.validate_transaction(index, self.web3.eth.get_transaction(tx_hash))
+        tx = self.web3.eth.get_transaction(tx_hash)
+        # Wallets can wrap a request in a smart-account batch. A confirmed revert
+        # must not trap the browser in its acknowledgement retry loop. Retain it
+        # separately; it never counts as a completed deployment step.
+        try:
+            receipt = self.web3.eth.get_transaction_receipt(tx_hash)
+        except TransactionNotFound:
+            receipt = None
+        if receipt is not None and receipt.status == 0:
+            if (tx['from'].lower() != self.owner.lower()
+                    or tx.get('chainId') != SEPOLIA_CHAIN_ID or tx.get('value', 0) != 0
+                    or self.web3.eth.block_number - receipt.blockNumber + 1 < 6
+                    or self.web3.eth.get_block(receipt.blockNumber).hash != receipt.blockHash):
+                raise ValueError('Failed transaction is not confirmed for this wallet/network')
+            failures = self.state.setdefault('failed_transactions', [])
+            if not any(row['hash'].lower() == tx_hash.lower() for row in failures):
+                failures.append({'index': index, 'hash': tx_hash})
+                self.save()
+            return True
+        self.validate_transaction(index, tx)
         transactions.append(tx_hash)
         self.save()
 
@@ -202,7 +223,8 @@ def serve(deployment, port=8090):
                     return self.reply(400, {'detail': 'Invalid setup request'})
                 data = json.loads(self.rfile.read(length))
                 if self.path == '/transaction':
-                    deployment.record(data['index'], data['hash'])
+                    reverted = deployment.record(data['index'], data['hash'])
+                    return self.reply(200, {'ok': True, 'reverted': bool(reverted)})
                 elif self.path == '/activate':
                     deployment.activate()
                     activated = True

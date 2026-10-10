@@ -4,6 +4,7 @@ const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name="setup-token"]').content;
 const wallet = new Wallet({chain_id: 11155111, network: 'Sepolia', genesis_hash: '0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9'});
 let current = null, busy = false, timer = null;
+let reverted = false;
 const journalKey = 'hv_sepolia_pending';
 
 async function request(path, body) {
@@ -20,7 +21,10 @@ async function refresh() {
   try {
     // Save the hash before waiting for a receipt; never resend after a timeout/reload.
     const pending = JSON.parse(localStorage.getItem(journalKey) || 'null');
-    if (pending) { await request('/transaction', pending); localStorage.removeItem(journalKey); }
+    if (pending) {
+      const result = await request('/transaction', pending);
+      reverted = result.reverted; localStorage.removeItem(journalKey);
+    }
     current = await request('/status');
     $('status').classList.remove('is-error'); $('retry').hidden = true;
     $('steps').replaceChildren(...current.steps.map(step => {
@@ -34,7 +38,7 @@ async function refresh() {
     }
     $('owner').textContent = current.owner;
     $('status').textContent = current.ready ? 'Ready to activate' : `Step ${current.index + 1} of 7 · ${current.label}`;
-    $('cost').textContent = current.ready ? '' : 'Review fees in your wallet.';
+    $('cost').textContent = reverted ? 'Previous transaction reverted. Use standard wallet transactions to retry.' : current.ready ? '' : 'Review fees in your wallet.';
     $('continue').textContent = current.ready ? 'Activate Sepolia' : wallet.address ? current.label : 'Connect wallet';
     $('continue').disabled = busy;
   } catch (error) { showError(error); }
@@ -60,7 +64,8 @@ $('continue').addEventListener('click', async () => {
     await wallet.assertContext(wallet.generation, wallet.address);
     const hash = await wallet.injected.request({method: 'eth_sendTransaction', params: [current.transaction]});
     localStorage.setItem(journalKey, JSON.stringify({index: current.index, hash}));
-    await request('/transaction', {index: current.index, hash}); localStorage.removeItem(journalKey);
+    const result = await request('/transaction', {index: current.index, hash});
+    reverted = result.reverted; localStorage.removeItem(journalKey);
   } catch (error) { failure = error; }
   finally {
     busy = false; $('continue').setAttribute('aria-busy', 'false');
