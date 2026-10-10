@@ -1,0 +1,22 @@
+No files changed, compilation skipped
+
+Ran 16 tests for test/HyperVaults.t.sol:HyperVaultsTest
+[PASS] testAnotherWalletCannotWithdraw() (gas: 336871)
+[PASS] testCapacityCannotDropBelowExistingDeposits() (gas: 336641)
+[PASS] testClosedOfferAndInvalidAmountAreRefused() (gas: 161245)
+[PASS] testDepositReservesFullRewardAndPaysAtMaturity() (gas: 428193)
+[PASS] testEarlyWithdrawalIsRefused() (gas: 338850)
+[PASS] testFaucetHasPerWalletCooldown() (gas: 151522)
+[PASS] testFeeTokenFundingIsRejectedAtomically() (gas: 728844)
+[PASS] testFuzzRewardUsesIntegerFloor(uint128,uint16,uint32) (runs: 512, μ: 7008, ~: 7008)
+[PASS] testMainnetAndInvalidTokenAreRejected() (gas: 3936)
+[PASS] testOfferUpdatesCannotAlterExistingPosition() (gas: 468656)
+[PASS] testOnlyOwnerCanChangeOffersOrPause() (gas: 83960)
+[PASS] testOwnershipNeedsExplicitAcceptanceAndCannotBeRenounced() (gas: 113148)
+[PASS] testPaginationIsBoundedAndOwnerScoped() (gas: 331889)
+[PASS] testPauseBlocksDepositsButAllowsMatureWithdrawal() (gas: 452909)
+[PASS] testUnfundedRewardCannotBePromised() (gas: 279216)
+[PASS] testWithdrawalCannotBeRepeated() (gas: 401154)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 10.59ms (14.49ms CPU time)
+
+Ran 1 test suite in 14.41ms (10.59ms CPU time): 16 tests passed, 0 failed, 0 skipped (16 total tests)

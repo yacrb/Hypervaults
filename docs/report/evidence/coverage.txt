@@ -1,0 +1,20 @@
+Name                   Stmts   Miss Branch BrPart  Cover
+--------------------------------------------------------
+auth/__init__.py           0      0      0      0   100%
+auth/crypto.py            43      5      8      3    84%
+auth/dependencies.py      23      0     10      0   100%
+auth/mfa.py               92      4     30      4    93%
+auth/mfa_routes.py        66      7     12      4    86%
+auth/routes.py           328     57     78     23    78%
+auth/services.py         143     14     36      7    87%
+scripts/sepolia.py       216    122     80      5    42%
+webapp/__init__.py         0      0      0      0   100%
+webapp/blockchain.py     267     46    100     32    78%
+webapp/config.py          64      6     22      7    85%
+webapp/database.py        20      5      2      0    77%
+webapp/main.py           135     28     34      9    78%
+webapp/networks.py         9      0      4      0   100%
+webapp/routes.py          64      2     10      2    95%
+webapp/wallets.py         31      1     12      1    95%
+--------------------------------------------------------
+TOTAL                   1501    297    438     97    77%

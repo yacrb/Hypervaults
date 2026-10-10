@@ -6,6 +6,10 @@ purple cover uses the site's artwork, the two authors and class, without a modul
 name or cover date. Nine diagrams remain editable SVGs. Demo images are real
 browser captures; screenshots are never substituted with drawings or mockups.
 
+The published snapshot is available directly in the repository:
+[23-page PDF](HyperVaults_Report.pdf), [editable diagrams](../assets/security),
+and [original screenshots and test evidence](evidence/README.md).
+
 Generated PDF, assets and evidence live in `output/pdf/hypervaults-report/` and
 are ignored by Git. The checked-in scripts describe this verified report snapshot;
 if the app or test counts change, update its prose and assertions before publishing.

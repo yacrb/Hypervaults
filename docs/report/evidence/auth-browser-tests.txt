@@ -1,0 +1,1 @@
+PASS: delayed startup, one sign-in at a time, wallet cancellation, MFA retry/recovery/duplicate guards/cancellation, protected reset and POST fallback.

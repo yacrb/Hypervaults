@@ -1,0 +1,1 @@
+PASS: rendered QR decoding at four widths, real MFA enrollment, gated login and action-bound disable; chain offline. Existing accounts untouched.

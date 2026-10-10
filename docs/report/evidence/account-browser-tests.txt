@@ -1,0 +1,1 @@
+PASS: separate connect/link, proof cancellation/retry, duplicate guards, wallet-authorized email setup, password confirmation, separate account layout and MFA enrollment/cancellation.

@@ -1,0 +1,7 @@
+/api/config 200
+chain_id: 11155111
+/api/snapshot 200
+offers: 3 covered: True
+/api/admin/snapshot 200
+offers: 3 covered: True
+PASS: live app health, password sign-in, CSRF rejection, security controls, logout/session revocation. No accounts or vault positions changed.
