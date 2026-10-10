@@ -11,6 +11,7 @@ from web3.exceptions import TransactionNotFound
 
 from webapp.config import ROOT
 from webapp.networks import SEPOLIA_CHAIN_ID, SEPOLIA_GENESIS, chain_identity
+from webapp.wallets import is_key_account
 
 DEFAULT_RPC = 'https://ethereum-sepolia-rpc.publicnode.com'
 STAGES = ['Deploy HVT', 'Deploy vault', 'Create 1-day offer', 'Create 7-day offer',
@@ -26,8 +27,8 @@ class Deployment:
         self.rpc_url, self.compiled = rpc_url, compiled
         self.web3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={'timeout': 10}))
         self.identity = chain_identity(self.web3, SEPOLIA_CHAIN_ID)
-        if self.web3.eth.get_code(self.owner):
-            raise ValueError('Use a dedicated EOA test wallet for deployment')
+        if not is_key_account(self.web3.eth.get_code(self.owner)):
+            raise ValueError('Use a key-controlled test wallet for deployment')
         self.write, self.manifest_builder = private_write, manifest_builder
         self.path = ROOT / '.local/sepolia-progress.json'
         self.state = json.loads(self.path.read_text()) if self.path.exists() else {

@@ -63,7 +63,11 @@ network is retained across restarts. Mainnet is rejected.
 
 ## Supported wallets
 
-Only injected EOA wallets are supported. The picker uses local artwork and treats
+Injected EOAs, including EIP-7702 delegated accounts, are supported with 65-byte
+ECDSA signatures from the account's own key. Only empty account code or the exact
+23-byte `0xef0100 || address` delegation indicator is accepted. The app does not
+request delegations, invoke delegated signature validation, or accept ERC-1271
+contract signatures. The picker uses local artwork and treats
 wallet metadata as self-reported text; it never executes provider-supplied SVG/HTML.
 Account, network or provider changes invalidate the transaction context. Contract
 wallet signatures and WalletConnect QR sessions are not supported. Explicit

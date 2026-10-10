@@ -20,6 +20,7 @@ from web3.exceptions import TransactionNotFound
 from auth.services import utcnow
 from webapp.config import ROOT, Settings
 from webapp.networks import chain_identity
+from webapp.wallets import is_key_account
 
 
 class ChainUnavailable(Exception):
@@ -156,10 +157,11 @@ class ChainService:
 
     @rpc_read
     def is_eoa(self, address: str) -> bool:
+        """Allow key-controlled EOAs, including exact EIP-7702 delegations."""
         block = self.validated_block()
-        result = not self.web3.eth.get_code(
+        result = is_key_account(self.web3.eth.get_code(
             Web3.to_checksum_address(address), block_identifier="latest"
-        )
+        ))
         self.ensure_canonical(block)
         return result
 

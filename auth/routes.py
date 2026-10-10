@@ -270,7 +270,7 @@ def wallet_challenge(body: Challenge, request: Request):
     address = Web3.to_checksum_address(body.address)
     if not request.app.state.chain.is_eoa(address):
         raise HTTPException(
-            400, "Only EOA wallets are supported; contract/delegated wallets are not supported."
+            400, "Use a key-controlled wallet. Contract-wallet signatures are not supported."
         )
     return service.challenge(session, user, address, body.action)
 

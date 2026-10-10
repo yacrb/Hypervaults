@@ -59,7 +59,8 @@ reward, and existing positions keep their original terms.
 Wallet connection requests the selected network: **Anvil (31337)** or **Sepolia (11155111)**.
 Anvil can be added when missing; enable Sepolia in your wallet's test networks if needed.
 Approve the network request and sign-in message in your wallet. Signing in costs
-no gas; transactions need local test ETH. Only injected EOA wallets are supported.
+no gas; transactions need ETH on the selected network. Injected EOAs, including
+EIP-7702 delegated accounts signing with their own key, are supported.
 
 ## Screens
 
