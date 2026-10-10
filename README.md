@@ -32,6 +32,16 @@ or a remote database. Repeating startup preserves your deployment, accounts,
 password changes and keys. Ports **8088 / 8545 / 27018** bind only to localhost.
 Encryption keys and private runtime files stay outside Git.
 
+For a public test network, deploy with your browser wallet:
+
+```sh
+uv run python manage.py sepolia --owner YOUR_PUBLIC_TEST_WALLET_ADDRESS
+```
+
+Open `http://127.0.0.1:8090/` and review the deployment steps in your wallet.
+The app switches after verified deployment and funding. See [Sepolia setup](docs/SEPOLIA.md)
+for resumable progress, network selection, RPC requirements and real-time lock periods.
+
 ## How it works
 
 ![Architecture with browser and wallet icons, a FastAPI server, MongoDB and the two Anvil contracts](docs/assets/architecture.svg)
@@ -46,7 +56,8 @@ reward, and existing positions keep their original terms.
 2. **Get test tokens** in **Vaults**, review an offer and preview a deposit.
 3. **Track the position** and withdraw after maturity. Private notes are encrypted on the server.
 
-Wallet connection requests **Anvil (31337)** and offers to add it when missing.
+Wallet connection requests the selected network: **Anvil (31337)** or **Sepolia (11155111)**.
+Anvil can be added when missing; enable Sepolia in your wallet's test networks if needed.
 Approve the network request and sign-in message in your wallet. Signing in costs
 no gas; transactions need local test ETH. Only injected EOA wallets are supported.
 
@@ -127,14 +138,16 @@ auth/           Authentication, sessions and account permissions
 webapp/         API, chain reads, templates and browser assets
 smartcontract/  Vault/token source and pinned Foundry dependencies
 docs/assets/    Two editable diagrams and five app screenshots
+docs/SEPOLIA.md Public testnet deployment and restart guide
+scripts/        Browser-wallet Sepolia setup helper
+tests/          Network and deployment regression checks
 manage.py       Local startup and development controls
 ```
 
-The runtime repository contains no test suites, demo scripts or engineering reports.
-Optional development material is preserved separately in the local
-`../Hypervaults-development-archive/` folder. It is not required to run the app.
+Run the network/deployment checks with `uv run python -m unittest discover -s tests -v`.
 Wallet keys, credentials, caches and generated build output are excluded from Git
-and the app image. Wallet-extension prompts and public Sepolia deployment remain unverified.
+and the app image. A live Sepolia deployment requires wallet-approved transactions;
+setup code and passing regression checks alone do not demonstrate a public deployment.
 
 <details>
 <summary>Artwork and dependency credits</summary>

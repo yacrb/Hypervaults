@@ -1,7 +1,8 @@
 # Security notes
 
 This educational project uses test tokens and has not been independently audited.
-Public deployment, live wallet-extension review and production SMTP are unverified.
+Public website hosting and production SMTP are unverified. Public Sepolia contract
+deployment requires browser-wallet approval and verified transaction receipts.
 
 ## Boundaries
 
@@ -16,7 +17,8 @@ Public deployment, live wallet-extension review and production SMTP are unverifi
 - Private notes use server-side AES-256-GCM with fresh nonces and account/position
   binding. This is not end-to-end encryption. Keys stay outside MongoDB in `.env`.
 - Financial data comes from verified contract events and confirmed chain reads.
-  A wallet's chain, genesis and contract code must match the deployment before signing.
+  A wallet's chain and contract code must match the deployment before signing.
+  Anvil additionally checks its live genesis; Sepolia checks the recorded deployment block.
   Failed or unavailable verification does not count as a successful transaction.
 
 ## Contract behavior
@@ -55,8 +57,9 @@ replacing a chain. Old-chain positions are not transferable to a new chain.
 
 HTTPS enables Secure `__Host-` cookies and HSTS. Local HTTP cookies are restricted
 to loopback development. Production configuration requires HTTPS, SMTP over TLS
-and six confirmations. Sepolia is allowed by configuration, but the compact local
-startup command deploys only to Anvil. Mainnet is rejected.
+and six confirmations. Sepolia requires six confirmations in every mode and uses
+the browser-wallet setup described in [Sepolia setup](docs/SEPOLIA.md). The selected
+network is retained across restarts. Mainnet is rejected.
 
 ## Supported wallets
 
