@@ -42,9 +42,21 @@ operation requiring production HTTPS and recovery-mail configuration.
 Transaction hashes are saved in `.local/sepolia-progress.json`; the browser also
 retains a submitted hash until the setup server acknowledges it. Reloading or
 repeating the setup command with the same owner resumes confirmed progress.
-The helper never automatically resends a recorded transaction. If a transaction
-was replaced, cancelled, reverted, or dropped, inspect its wallet activity and
-receipt before changing the private progress file; do not erase it to retry.
+The helper never automatically resends a recorded transaction. A failed attempt
+awaiting acknowledgement can be cleared only after its reverted receipt has six
+canonical confirmations and matches the owner/network. Its hash is retained in
+`failed_transactions`; it does not advance setup. Replaced, cancelled, dropped,
+or already-recorded reverted transactions still require receipt inspection;
+do not erase progress to retry.
+
+Use standard wallet transactions for setup and vault operations. MetaMask can
+wrap requests in smart-account batches, which the exact-payload verifier does
+not support. If a batch reverts, switch **Account details → Smart account →
+Sepolia** off in MetaMask, review its wallet transaction, then resume setup.
+This changes only that network's wallet mode; the address stays the same. See
+[MetaMask's account-mode guide](https://support.metamask.io/configure/accounts/switch-to-or-revert-from-a-smart-account/).
+EIP-7702 delegated accounts can authenticate with their own ECDSA key, but this
+does not enable batched or relayed transaction verification.
 
 Restart the selected network with:
 
