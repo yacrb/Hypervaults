@@ -10,6 +10,7 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+/output/pdf/hypervaults-report/
 *.log
 *.pem
 *.key
