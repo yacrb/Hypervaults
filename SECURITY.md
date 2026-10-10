@@ -12,6 +12,9 @@ deployment requires browser-wallet approval and verified transaction receipts.
   SIWE proofs are short-lived, browser-bound, single-use and verified on the server.
 - Passwords use Argon2id. Sessions use hashed opaque identifiers, HttpOnly cookies,
   CSRF protection, explicit trusted origins and current account/role checks.
+- Sign-in waits for the session/CSRF bootstrap and permits one email or wallet
+  attempt at a time. Forms default to POST if scripts fail, keeping credentials
+  out of navigation URLs. Email access does not depend on wallet configuration.
 - Administrator roles control website accounts. Contract ownership controls future
   offers and deposit pause. Neither grants access to another wallet's principal.
 - Private notes use server-side AES-256-GCM with fresh nonces and account/position
