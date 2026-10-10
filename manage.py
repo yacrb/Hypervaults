@@ -1,4 +1,4 @@
-"""Start and manage the private local HyperVaults development stack."""
+"""Manage HyperVaults on local Anvil or the public Sepolia testnet."""
 
 import argparse
 import base64
@@ -424,11 +424,49 @@ def make_tls():
     )
 
 
-def compose(*args, https=False):
-    command = ["docker", "compose"]
+def selected_network():
+    path = ROOT / ".local/network"
+    network = path.read_text().strip() if path.exists() else "local"
+    if network not in {"local", "sepolia"}:
+        raise SystemExit("Saved network is invalid. Inspect .local/network before restarting.")
+    return network
+
+
+def compose(*args, https=False, network="local"):
+    command = ["docker", "compose", "-f", "compose.yaml"]
+    environment = os.environ.copy()
+    if network == "sepolia":
+        command += ["-f", "compose.sepolia.yaml"]
+        environment["HV_SEPOLIA_RPC_URL"] = (ROOT / ".local/sepolia-rpc.txt").read_text().strip()
     if https:
-        command += ["-f", "compose.yaml", "-f", "compose.https.yaml"]
-    run(*command, *args)
+        command += ["-f", "compose.https.yaml"]
+    subprocess.run([*command, *args], cwd=ROOT, env=environment, check=True)
+
+
+def start_sepolia(https=False):
+    origin = configure(https)
+    rpc_url = (ROOT / ".local/sepolia-rpc.txt").read_text().strip()
+    settings = Settings().model_copy(update={
+        "rpc_url": rpc_url, "chain_id": 11155111, "confirmations": 6,
+        "deployment_file": ROOT / ".local/sepolia-deployment.json",
+    })
+    from webapp.blockchain import ChainService
+
+    # Validate before replacing the running app; retain the Anvil manifest/data.
+    compose("up", "-d", "--wait", "mongo", network="sepolia")
+    client, db = connect(settings)
+    try:
+        chain = ChainService(settings, db)
+        chain.sync()
+    finally:
+        client.close()
+    if https:
+        make_tls()
+    compose("up", "-d", "--build", "--no-deps", "--force-recreate", "app", https=https, network="sepolia")
+    wait_for_application(origin, https)
+    private_write(ROOT / ".local/network", "sepolia\n")
+    print(f"HyperVaults ready on Sepolia: {origin}/login")
+    print("Website accounts, note keys and the original local chain data were preserved.")
 
 
 def wait_for_application(origin, https):
@@ -500,13 +538,30 @@ def main():
     for name in ["up", "down", "status"]:
         command = commands.add_parser(name)
         command.add_argument("--https", action="store_true", help="Use local HTTPS on port 8443")
+        command.add_argument("--network", choices=["local", "sepolia"], default=None)
+    sepolia = commands.add_parser("sepolia", help="Deploy to Sepolia with your browser wallet")
+    sepolia.add_argument("--owner", required=True, help="Public address of the test wallet that signs deployment")
+    sepolia.add_argument("--rpc-url", default="https://ethereum-sepolia-rpc.publicnode.com")
+    sepolia.add_argument("--https", action="store_true", help="Start the application with local HTTPS")
     commands.add_parser("advance", help="Advance only the local Anvil clock").add_argument(
         "seconds", type=int
     )
     for name in ["fund-gas", "nominate-owner"]:
         commands.add_parser(name).add_argument("--address", required=True)
     args = parser.parse_args()
-    if args.command == "up":
+    network = getattr(args, "network", None) or selected_network()
+    if args.command == "sepolia":
+        from scripts.sepolia import Deployment, serve
+
+        configure(args.https)
+        setup_dependencies()
+        run(str(ROOT / ".tools/bin/forge"), "build", "--root", "smartcontract")
+        deployment = Deployment(args.owner, args.rpc_url, export(), private_write, deployment_manifest)
+        if serve(deployment):
+            start_sepolia(args.https)
+    elif args.command == "up" and network == "sepolia":
+        start_sepolia(args.https)
+    elif args.command == "up":
         origin = configure(args.https)
         setup_dependencies()
         compose("up", "-d", "--wait", "mongo", "anvil")
@@ -517,13 +572,14 @@ def main():
             make_tls()
         compose("up", "-d", "--build", "--force-recreate", "app", https=args.https)
         wait_for_application(origin, args.https)
+        private_write(ROOT / ".local/network", "local\n")
         print(f"HyperVaults ready: {origin}/login")
         print("Administrator credentials: .local/admin-credentials.txt")
     elif args.command == "down":
-        compose("down", https=args.https)
+        compose("down", https=args.https, network=network)
         print("HyperVaults stopped. Local volumes, keys and credentials were preserved.")
     elif args.command == "status":
-        compose("ps", https=args.https)
+        compose("ps", https=args.https, network=network)
     else:
         local_operation(args)
 

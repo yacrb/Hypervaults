@@ -1,0 +1,11 @@
+services:
+  app:
+    environment:
+      HV_CHAIN_ID: "11155111"
+      HV_RPC_URL: ${HV_SEPOLIA_RPC_URL:?Start Sepolia through manage.py}
+      HV_DEPLOYMENT_FILE: /app/.local/sepolia-deployment.json
+      HV_CONFIRMATIONS: "6"
+      HV_INDEX_INTERVAL: "15"
+    depends_on: !override
+      mongo:
+        condition: service_healthy
