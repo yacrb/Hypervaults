@@ -155,6 +155,7 @@ webapp/         API, chain reads, templates and browser assets
 smartcontract/  Vault/token source and pinned Foundry dependencies
 docs/assets/    Two editable diagrams and five app screenshots
 docs/SEPOLIA.md Public testnet deployment and restart guide
+docs/report/    Illustrated security report and reproducible demo evidence
 scripts/        Browser-wallet Sepolia setup helper
 tests/          Authentication, UI, network and deployment checks
 manage.py       Local startup and development controls
@@ -163,6 +164,8 @@ manage.py       Local startup and development controls
 Run the checks with `uv run python -m unittest discover -s tests -v`.
 The [authentication guide](docs/AUTHENTICATION.md#reproducible-checks) includes isolated
 MongoDB/API and browser checks.
+The [illustrated report guide](docs/report/README.md) documents the broader API,
+contract and browser security assessment and how to render its editable diagrams.
 Wallet keys, credentials, caches and generated build output are excluded from Git
 and the app image. A live Sepolia deployment requires wallet-approved transactions;
 setup code and passing regression checks alone do not demonstrate a public deployment.
