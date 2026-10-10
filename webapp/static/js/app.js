@@ -55,9 +55,11 @@ function walletState(message = '') {
   if ((!wallet.address && ['vaults', 'positions', 'security'].includes(view)) || (wallet.address && !user.wallets.includes(wallet.address))) {
     notice.hidden = false;
     notice.append(element('span', '', message || (wallet.address ? 'Link this wallet in Security to use it with your account.' : 'Connect a wallet to use your tokens.')));
-    const switchButton = button('Switch network', action(() => wallet.switchNetwork()), true);
-    switchButton.disabled = wallet.connecting;
-    notice.append(switchButton);
+    if (!wallet.address) {
+      const connectButton = button('Connect wallet', () => $('connect-wallet').click(), true);
+      connectButton.disabled = wallet.connecting;
+      notice.append(connectButton);
+    }
     if (wallet.address && !user.wallets.includes(wallet.address)) {
       const link = element('a', 'text-link', 'Open Security ↗'); link.href = '/security'; notice.append(link);
     }
