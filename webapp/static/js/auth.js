@@ -1,5 +1,5 @@
 import {api, boot, $, element} from './api.js?v=2';
-import {Wallet, walletError} from './wallet.js?v=3';
+import {Wallet, walletError} from './wallet.js?v=4';
 
 const view = location.pathname.slice(1), form = $('auth-form'), message = $('auth-message');
 let resetToken = null, wallet = null;

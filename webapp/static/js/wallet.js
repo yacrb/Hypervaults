@@ -25,7 +25,7 @@ function rpcErrorCode(error) {
 export function walletError(error) {
   if (rpcErrorCode(error) === -32002 || error.code === 'WALLET_REQUEST_PENDING') return 'A wallet request is already open. Complete or cancel it in your wallet, then try again.';
   if (rpcErrorCode(error) === 4001 || error.code === 'ACTION_REJECTED') return 'Transaction or signature rejected in the wallet. Nothing further was sent.';
-  if (error.code === 'INSUFFICIENT_FUNDS') return 'Insufficient test ETH for gas. Fund local gas using the startup helper.';
+  if (error.code === 'INSUFFICIENT_FUNDS') return 'Insufficient test ETH for gas. Add test ETH on the selected network.';
   if (error.code === 'CALL_EXCEPTION') return 'The contract rejected this transaction. Refresh the terms, funding and maturity before retrying.';
   if (error.code === 'TIMEOUT') return 'Transaction is still pending. Its hash has been retained in this tab for verification.';
   if (error.code === 'TRANSACTION_REPLACED') return 'The wallet replaced or cancelled this transaction. Refresh and inspect its receipt before retrying.';
@@ -221,10 +221,12 @@ export class Wallet extends EventTarget {
     await this.assertContext(generation, address);
     if (!user.wallets.includes(address)) throw new Error('This wallet is not linked to your website account. Link it in Security with a signed ownership proof.');
     if (owner && owner.toLowerCase() !== address) throw new Error('Connect the wallet authorized for this position or contract action.');
-    const [genesis, vaultCode, tokenCode] = await Promise.all([
-      this.provider.getBlock(0), this.provider.getCode(this.config.vault_address), this.provider.getCode(this.config.token_address),
+    const publicNetwork = this.config.chain_id === 11155111;
+    const [anchor, vaultCode, tokenCode] = await Promise.all([
+      this.provider.getBlock(publicNetwork ? this.config.deployment_block : 0), this.provider.getCode(this.config.vault_address), this.provider.getCode(this.config.token_address),
     ]);
-    if (genesis.hash !== this.config.genesis_hash || keccak256(vaultCode) !== this.config.vault_code_hash || keccak256(tokenCode) !== this.config.token_code_hash) throw new Error('Wallet RPC chain or contract code does not match the verified deployment. No transaction was sent.');
+    const expectedHash = publicNetwork ? this.config.deployment_block_hash : this.config.genesis_hash;
+    if (!anchor || anchor.hash !== expectedHash || keccak256(vaultCode) !== this.config.vault_code_hash || keccak256(tokenCode) !== this.config.token_code_hash) throw new Error('Wallet RPC chain or contract code does not match the verified deployment. No transaction was sent.');
     await this.assertContext(generation, address);
     const signer = await this.provider.getSigner(address);
     return {address, generation, signer,

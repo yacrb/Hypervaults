@@ -1,5 +1,5 @@
 import {api, boot, $, element, empty, emptyState, icon, disclosure, button, detail, shortAddress, dateTime, dateString} from './api.js?v=2';
-import {Wallet, amount, tokens, rate, walletError} from './wallet.js?v=3';
+import {Wallet, amount, tokens, rate, walletError} from './wallet.js?v=4';
 
 const view = location.pathname.slice(1) || 'overview';
 const screen = {

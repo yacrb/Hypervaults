@@ -58,6 +58,8 @@ class Settings(BaseSettings):
             raise ValueError("Insecure cookies are limited to explicit localhost development")
         if self.chain_id not in {31337, 11155111}:
             raise ValueError("Only local Anvil or the documented Sepolia testnet is supported")
+        if self.chain_id == 11155111 and self.confirmations < 6:
+            raise ValueError("Sepolia requires at least six confirmations")
         if self.mode == "production" and not (self.smtp_host and self.mail_from):
             raise ValueError("Production password recovery requires SMTP and a sender")
         if self.mode == "production" and self.confirmations < 6:

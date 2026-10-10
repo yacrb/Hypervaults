@@ -19,6 +19,7 @@ from web3.exceptions import TransactionNotFound
 
 from auth.services import utcnow
 from webapp.config import ROOT, Settings
+from webapp.networks import chain_identity
 
 
 class ChainUnavailable(Exception):
@@ -100,6 +101,8 @@ class ChainService:
             "mode": self.settings.mode,
             "origin": self.settings.origin,
             "genesis_hash": self.manifest["genesis_hash"],
+            "deployment_block": self.manifest["deployment_block"],
+            "deployment_block_hash": self.manifest["deployment_block_hash"],
             "vault_code_hash": self.manifest["vault_code_hash"],
             "token_code_hash": self.manifest["token_code_hash"],
         }
@@ -112,7 +115,7 @@ class ChainService:
             or self.manifest["chain_id"] != self.settings.chain_id
         ):
             raise ChainUnavailable("RPC network does not match the configured test network.")
-        if Web3.to_hex(self.web3.eth.get_block(0).hash) != self.manifest["genesis_hash"]:
+        if chain_identity(self.web3, self.settings.chain_id) != self.manifest["genesis_hash"]:
             raise ChainUnavailable(
                 "The local chain was reset. Deployment and index must be explicitly rebuilt."
             )

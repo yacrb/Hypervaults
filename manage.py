@@ -32,6 +32,7 @@ from web3 import Web3
 from auth.services import utcnow
 from webapp.config import ROOT, Settings
 from webapp.database import connect
+from webapp.networks import chain_identity
 
 
 def run(*args):
@@ -180,7 +181,7 @@ def deployment_manifest(web3, vault, token, block_number):
         "token_address": token,
         "deployment_block": block_number,
         "deployment_block_hash": web3.to_hex(block.hash),
-        "genesis_hash": web3.to_hex(web3.eth.get_block(0).hash),
+        "genesis_hash": chain_identity(web3, web3.eth.chain_id),
         "vault_code_hash": web3.to_hex(web3.keccak(web3.eth.get_code(vault))),
         "token_code_hash": web3.to_hex(web3.keccak(web3.eth.get_code(token))),
         "build_hashes": {
