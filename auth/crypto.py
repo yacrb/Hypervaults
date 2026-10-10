@@ -14,7 +14,7 @@ class NoteTampered(Exception):
 
 
 class NoteCipher:
-    def __init__(self, encoded_keys: str, active_key: str, db):
+    def __init__(self, encoded_keys: str, active_key: str, db, purpose="hypervaults-note-v1"):
         try:
             self.keys = {
                 key_id: base64.b64decode(value, validate=True)
@@ -32,10 +32,10 @@ class NoteCipher:
             ) from exc
         self.active_key = active_key
         self.db = db
+        self.purpose = purpose
 
-    @staticmethod
-    def aad(user_id: str, record: str) -> bytes:
-        return json.dumps(["hypervaults-note-v1", user_id, record], separators=(",", ":")).encode()
+    def aad(self, user_id: str, record: str) -> bytes:
+        return json.dumps([self.purpose, user_id, record], separators=(",", ":")).encode()
 
     def encrypt(self, plaintext: str, user_id: str, record: str) -> dict:
         # Persist a nonce reservation so a nonce cannot be reused, even after edits.
