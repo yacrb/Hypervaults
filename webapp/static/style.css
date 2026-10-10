@@ -72,6 +72,7 @@ main#main:not(.auth-layout) { max-width: 1400px; margin: 0 auto; padding: 32px 3
 .button .icon { width: 16px; height: 16px; }
 .full-width { width: 100%; }
 .text-link { color: var(--accent); font-size: 12px; font-weight: 500; }
+button.text-link { appearance: none; border: 0; background: transparent; padding: 8px 0; cursor: pointer; }
 .text-link:hover { color: #d8caff; }
 .notice { border: 1px solid #3c334e; background: #211b2c; color: #d4c4ef; padding: 12px 16px; border-radius: 12px; margin-bottom: 22px; font-size: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .notice > span { flex: 1; }
