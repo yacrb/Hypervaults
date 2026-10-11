@@ -2,8 +2,8 @@
 
 The report explains the actual HyperVaults architecture, website authentication,
 wallet linking, MFA, encrypted notes, authorization and contract safeguards. Its
-purple cover uses the site's artwork, the two authors and class, without a module
-name or cover date. Nine diagrams remain editable SVGs. Demo images are real
+purple cover uses the site's artwork and the two authors, without a class label,
+module name or cover date. Nine diagrams remain editable SVGs. Demo images are real
 browser captures; screenshots are never substituted with drawings or mockups.
 
 The published snapshot is available directly in the repository:
@@ -114,7 +114,7 @@ pdftoppm -r 120 -png output/pdf/hypervaults-report/HyperVaults_Report.pdf /tmp/h
 
 Inspect every rendered page for clipped text, unreadable labels, overlap and
 incorrect captions. The authoring checks cannot replace visual review. Keep the
-cover names exactly `Mohamed Yacine Riabi`, `Yassine ben lazreg`, `ING 5 SSIRE A`.
+cover names exactly `Mohamed Yacine Riabi` and `Yassine ben lazreg`.
 The PDF footer and page headers contain no report date or module name.
 
 Share the PDF and an assets archive containing the editable diagrams, original

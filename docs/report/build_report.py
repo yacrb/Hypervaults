@@ -316,9 +316,6 @@ class Report:
         c.setFillColor(colors.white)
         c.drawString(M + 22, 197, "Mohamed Yacine Riabi")
         c.drawString(M + 22, 170, "Yassine ben lazreg")
-        c.setFont("Body", 12)
-        c.setFillColor(colors.HexColor("#C4AFE9"))
-        c.drawString(M + 22, 135, "ING 5 SSIRE A")
         for i, name in enumerate(
             ("python", "fastapi", "mongodb", "ethereum", "docker", "solidity")
         ):

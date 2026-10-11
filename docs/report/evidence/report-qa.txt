@@ -1,8 +1,8 @@
 PASS: final PDF has 23 A4 pages, 23 bookmarks and 9 primary-source links.
-PASS: exact cover authors and class; no module name or cover date.
-PASS: all 23 rendered pages visually inspected; revised pages rechecked.
+PASS: exact cover authors retained; class label removed; no module name or cover date.
+PASS: revised cover visually inspected; all 22 remaining pages have identical text, drawing content and rendered pixels to the previously reviewed PDF.
 PASS: diagram card text bounds checked; final diagrams visually reviewed in the PDF.
 PASS: no out-of-page PDF text; no clipped body content or overlapping captions.
 PASS: 18 original disposable-demo screenshots retained.
-Source revision: 82141e1c5ad2aab89e32ff08d9d6a884daf98218
-PDF SHA-256: 1a37e0ffdfe4b1cdafc7d8e24c595d5a0a7ad70be5bd368d449c054f4170d427
+Application/evidence source revision: 82141e1c5ad2aab89e32ff08d9d6a884daf98218
+PDF SHA-256: 6eb19fc816a16d1e5902257fb2751fe3460f320acf52275fcf7500827ddf62e6

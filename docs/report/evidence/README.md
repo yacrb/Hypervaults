@@ -14,7 +14,7 @@ claim of production acceptance; subsequent code changes should be checked again.
 | [Dependency audit](dependency-audit.json) | 61 runtime packages, with no known advisories in that recorded scan. |
 | [Python coverage](coverage.txt) / [Solidity coverage](contract-coverage.txt) | Diagnostics, including the contract instrumentation warnings; coverage alone does not establish security. |
 | [Live Sepolia checks](live-sepolia.txt) | Website sign-in/out, security APIs and read-only contract state with three offers and covered reserves. |
-| [Report quality checks](report-qa.txt) | PDF structure, authors/class, visual review and the report checksum. |
+| [Report quality checks](report-qa.txt) | PDF structure, authors, visual review and the report checksum. |
 
 The numbered PNGs are all 18 original captures from the disposable browser demo.
 The test harness used a separate Anvil container, temporary database, real API,
