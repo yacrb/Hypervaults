@@ -1,0 +1,67 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  accounts:
+    name: Accounts, permissions and encryption
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mongo:
+        image: mongo:8.0.17@sha256:9814652e33f0cf8b9fddea8b46dfc9d8e19b130dcfdd7b510ca58bb0d40c8b71
+        ports: ["27018:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      HV_AUTH_TEST_MONGO_URI: mongodb://127.0.0.1:27018
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.12.4"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Run Python suite against a real disposable database
+        run: uv run python -m unittest discover -s tests -v
+      - name: Install browser test runner
+        run: uv run --with playwright==1.64.1 playwright install --with-deps chromium
+      - name: Verify sign-in and account interfaces
+        run: |
+          uv run --with playwright==1.64.1 python -m tests.check_auth_ui
+          uv run --with playwright==1.64.1 python -m tests.check_account_ui
+      - name: Verify real enrollment, QR decoding and MFA sign-in
+        run: uv run --with playwright==1.64.1 python -m tests.check_mfa_e2e
+
+  contracts:
+    name: Vault invariants and reward arithmetic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.12.4"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Verify and install the locked contract toolchain
+        run: uv run python -c 'from manage import setup_dependencies; setup_dependencies()'
+      - run: .tools/bin/forge test --root smartcontract --fuzz-runs 512 -vv

@@ -72,10 +72,6 @@ async def check_flow(origin, clock):
                 scanned_uri = scanned.text
             secret = parse_qs(urlparse(scanned_uri).query)["secret"][0]
             assert secret == await page.locator("#mfa-secret").text_content()
-            # Optional visual evidence contains only this disposable test account's enrollment.
-            if directory := os.environ.get("HV_AUTH_TEST_SCREENSHOTS"):
-                Path(directory).mkdir(parents=True, exist_ok=True)
-                await page.screenshot(path=str(Path(directory) / "mfa-qr-mobile.png"), full_page=True)
             code = totp(secret, int(clock[0].timestamp()) // 30)
             await page.locator('#mfa-setup-form input[name="code"]').fill(code)
             await page.locator("#mfa-enable").click()
@@ -103,6 +99,15 @@ async def check_flow(origin, clock):
             await page.wait_for_url(origin + "/overview")
             await page.goto(origin + "/security")
             await page.locator("#mfa-status").filter(has_text="Enabled").wait_for()
+            # Publish only the enabled state, after enrollment material is gone.
+            if directory := os.environ.get("HV_AUTH_TEST_SCREENSHOTS"):
+                assert await page.locator("#mfa-qr").get_attribute("src") is None
+                assert await page.locator("#mfa-codes").inner_text() == ""
+                assert await page.locator("#mfa-secret").inner_text() == ""
+                Path(directory).mkdir(parents=True, exist_ok=True)
+                await page.locator(".mfa-panel").screenshot(
+                    path=str(Path(directory) / "mfa-enabled-mobile.png")
+                )
             await page.locator("#mfa-disable").click()
             await page.locator('dialog input[name="password"]').fill(password)
             await page.locator('dialog input[name="code"]').fill(codes[0])

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="650" viewBox="0 0 1120 650" role="img" aria-labelledby="title desc">
+<title id="title">HyperVaults verification coverage</title>
+<desc id="desc">Two parallel CI jobs verify the account system with MongoDB and Chromium, and the contracts with pinned Foundry. The complete transaction browser journey remains a separate local check.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 9 4.5 0 9Z" fill="#7654c4"/></marker></defs>
+<rect width="1120" height="650" rx="24" fill="#fbfaff"/>
+<g font-family="Arial, sans-serif">
+<text x="40" y="54" font-size="29" font-weight="700" fill="#231b36">Security checks that run with the code</text>
+<text x="40" y="86" font-size="18" fill="#70677d">Read-only workflow permissions · pinned actions · isolated test state</text>
+<rect x="350" y="120" width="420" height="60" rx="12" fill="#7654c4"/>
+<text x="560" y="158" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">Push, pull request or manual run</text>
+<path d="M560 180V207H285V235M560 207H835V235" fill="none" stroke="#7654c4" stroke-width="2.5" marker-end="url(#arrow)"/>
+<path d="M285 207V235" fill="none" stroke="#7654c4" stroke-width="2.5" marker-end="url(#arrow)"/>
+<rect x="40" y="235" width="490" height="280" rx="16" fill="#fff" stroke="#d8cbea"/>
+<rect x="590" y="235" width="490" height="280" rx="16" fill="#fff" stroke="#d8cbea"/>
+<text x="65" y="275" font-size="23" font-weight="700" fill="#231b36">Account boundary</text>
+<text x="65" y="307" font-size="17" fill="#7654c4">Python 3.12 + real MongoDB + Chromium</text>
+<text x="65" y="351" font-size="18" fill="#51465f">Password and wallet proofs</text>
+<text x="65" y="382" font-size="18" fill="#51465f">Session, CSRF and ownership rejection cases</text>
+<text x="65" y="413" font-size="18" fill="#51465f">Encryption tampering and recovery-code reuse</text>
+<text x="65" y="444" font-size="18" fill="#51465f">Real enrollment QR and gated MFA sign-in</text>
+<text x="65" y="482" font-size="16" fill="#70677d">Test databases are uniquely named and deleted.</text>
+<text x="615" y="275" font-size="23" font-weight="700" fill="#231b36">Contract boundary</text>
+<text x="615" y="307" font-size="17" fill="#7654c4">Checksum-locked Foundry + Solidity 0.8.30</text>
+<text x="615" y="351" font-size="18" fill="#51465f">Wallet ownership and withdrawal maturity</text>
+<text x="615" y="382" font-size="18" fill="#51465f">Reward reserve and immutable position terms</text>
+<text x="615" y="413" font-size="18" fill="#51465f">Pause behavior and repeated withdrawal</text>
+<text x="615" y="444" font-size="18" fill="#51465f">512 randomized reward arithmetic inputs</text>
+<text x="615" y="482" font-size="16" fill="#70677d">No connection to a public blockchain is required.</text>
+<rect x="40" y="550" width="1040" height="65" rx="12" fill="#f1edf8"/>
+<text x="65" y="578" font-size="18" font-weight="700" fill="#231b36">Separate local check: complete browser transaction journey</text>
+<text x="65" y="602" font-size="16" fill="#70677d">Disposable Anvil chain + actual API + MongoDB. Historical report evidence is preserved separately.</text>
+</g></svg>
